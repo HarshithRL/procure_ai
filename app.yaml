@@ -10,7 +10,7 @@ command:
   - "-w"
   - "4"
   - "-b"
-  - "0.0.0.0:${DATABRICKS_APP_PORT:-8000}"
+  - "0.0.0.0:8000"
   - "--timeout"
   - "60"
   - "--access-logfile"
@@ -30,12 +30,11 @@ env:
     value: "sqlite:////tmp/procure_ai.db"
   
   # Secret Key for session signing (MUST be set via Databricks Secret)
-  # Command to create secret:
-  #   databricks secrets create-scope procure-ai --profile <profile>
-  #   databricks secrets put-secret procure-ai secret-key --string-value "<strong-random-value>" --profile <profile>
-  # Then reference via valueFrom below.
+  # Command to create secret (already created):
+  #   databricks secrets create-scope procure-ai --profile adb-7181820732839861
+  #   databricks secrets put-secret procure-ai secret-key --string-value "<strong-random-value>" --profile adb-7181820732839861
   - name: SECRET_KEY
-    valueFrom: secret/procure-ai-secret-key
+    valueFrom: secret/procure-ai/secret-key
   
   # Databricks workspace host for WorkspaceClient (required for agent/LLM work)
   # Auto-populated when app is deployed to Databricks
