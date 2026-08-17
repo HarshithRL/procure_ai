@@ -57,3 +57,10 @@ Thumbs.db
 # Obsidian local UI workspace state (ignore across all subdirs)
 **/.obsidian/workspace.json
 **/.obsidian/workspace-mobile.json
+
+# OpenCode & IDE Temp (but track .opencode/ itself)
+.opencode/**/scratch/
+.opencode/**/temp/
+.claude/
+.cursor/
+*.tmp

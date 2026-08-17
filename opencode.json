@@ -1,0 +1,77 @@
+{
+  "name": "procure-ai",
+  "description": "AI-powered procurement workspace — Sprint 1 greenfield, Flask + LangChain + Databricks",
+  "root": ".",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "personae": [
+    "C:\\Users\\HarshithR\\.cursor\\agents\\senior-frontend-developer.md",
+    "C:\\Users\\HarshithR\\.cursor\\agents\\senior-backend-developer.md"
+  ],
+  "skills": [
+    {
+      "name": "flask-api",
+      "description": "Flask REST APIs, Jinja2 templates, blueprints, error handling"
+    },
+    {
+      "name": "langchain-expert",
+      "description": "LangChain chains, tools, retrievers, RAG pipelines"
+    },
+    {
+      "name": "langgraph-architect",
+      "description": "LangGraph multi-agent systems from requirements"
+    },
+    {
+      "name": "databricks-apps-python",
+      "description": "Python backend for Databricks Apps — FastAPI, Flask, connectivity"
+    },
+    {
+      "name": "databricks-core",
+      "description": "Databricks CLI, auth, profiles, bundles"
+    },
+    {
+      "name": "databricks-unity-catalog",
+      "description": "Unity Catalog governance, access control, observability"
+    },
+    {
+      "name": "python-best-practices",
+      "description": "Python 3.11+, uv, pyproject.toml, testing, linting, type checking"
+    },
+    {
+      "name": "react-component",
+      "description": "React components, hooks, state management (if FE framework chosen)"
+    }
+  ],
+  "mcp": [
+    {
+      "name": "graphify",
+      "description": "Knowledge graph querying — use for architecture questions before grepping",
+      "instruction": "From .design_docs/assistent/, run: graphify query \"<question>\" to explore the graph. Graph location: .design_docs/assistent/graphify-out/graph.json"
+    }
+  ],
+  "environment": {
+    "PYTHONVERSION": ">=3.11",
+    "PACKAGEMANAGER": "uv",
+    "VENV": ".venv"
+  },
+  "conventions": {
+    "commits": "conventional (feat(scope):, fix(auth):, docs(assistant):, chore:)",
+    "casing": "snake_case for Python, camelCase for TypeScript/JS",
+    "docstrings": "Google-style or triple-quoted; no stubs",
+    "tests": "pytest for Python; Jest for TS/JS when applicable"
+  },
+  "knowledge_base": {
+    "location": ".design_docs/assistent/",
+    "graph": "graphify-out/graph.json",
+    "readonly": ".design_docs/Knowledge/",
+    "readwrite": ".design_docs/assistent/",
+    "node_id_format": "{repo-relative-path}_{entity} (lowercase, [a-z0-9_] only)"
+  },
+  "sprint1": {
+    "deliverables": 12,
+    "focus": "Login SSO → Profile → Dashboard → Chat Interface",
+    "tech": "Flask + LangChain + Databricks Apps + X-Forwarded Headers",
+    "reference": "README.md:143"
+  }
+}
