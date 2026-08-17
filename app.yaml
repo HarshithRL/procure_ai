@@ -1,26 +1,67 @@
-# Databricks App Runtime Configuration
-# This file defines how the app runs on Databricks Apps platform
+# Databricks Apps Runtime Configuration
+# Declarative app configuration with dual-identity SSO and resource bindings
 # See: https://docs.databricks.com/dev-tools/databricks-apps/app-runtime
 
+# Flask app startup command (gunicorn production server)
+# Port is injected via DATABRICKS_APP_PORT env var (runtime default 8000)
 command:
   - "gunicorn"
   - "app:app"
   - "-w"
   - "4"
   - "-b"
-  - "0.0.0.0:8000"
+  - "0.0.0.0:${DATABRICKS_APP_PORT:-8000}"
   - "--timeout"
   - "60"
+  - "--access-logfile"
+  - "-"
+  - "--error-logfile"
+  - "-"
 
+# Environment variables & secrets
 env:
+  # Flask environment (development or production)
   - name: FLASK_ENV
     value: "production"
+  
+  # Database: Local SQLite during Sprint 1; Lakebase PostgreSQL in Sprint 2
+  # For Lakebase, use: postgresql://username:password@host:5432/dbname
   - name: DATABASE_URL
     value: "sqlite:////tmp/procure_ai.db"
+  
+  # Secret Key for session signing (MUST be set via Databricks Secret)
+  # Command to create secret:
+  #   databricks secrets create-scope procure-ai --profile <profile>
+  #   databricks secrets put-secret procure-ai secret-key --string-value "<strong-random-value>" --profile <profile>
+  # Then reference via valueFrom below.
   - name: SECRET_KEY
-    value: "changeme-in-production-use-secrets"
+    valueFrom: secret/procure-ai-secret-key
+  
+  # Databricks workspace host for WorkspaceClient (required for agent/LLM work)
+  # Auto-populated when app is deployed to Databricks
+  - name: DATABRICKS_HOST
+    value: "https://adb-7181820732839861.1.azuredatabricks.net/"
+  
+  # DATABRICKS_APP_PORT is injected by Databricks Apps runtime (default 8000)
+  # Do not override unless you have specific requirements
+  # - name: DATABRICKS_APP_PORT
+  #   value: "8000"
 
-# Resource references (added via Databricks Apps UI)
-# - sql-warehouse: For analytical queries
-# - database: For Lakebase (future)
-# - secret: For storing API keys and secrets
+# User OAuth scopes (required for on-behalf-of operations)
+# These scopes are requested when users first access the app
+user_api_scopes:
+  # SQL: Required for WorkspaceClient SQL execution and UC data access
+  - sql
+  
+  # Files: Required for UC Volume access and workspace directory traversal
+  - files
+  
+  # IAM Access Control Read: Required to retrieve user profile details
+  - iam.access-control:read
+
+# Resource references (future: added via Databricks Apps UI or DABs)
+# - sql-warehouse: For analytical queries (e.g., vendor comparison data)
+# - database: For Lakebase PostgreSQL (Sprint 2+)
+# - vector-search-endpoint: For semantic search on procurement documents
+# - model-serving-endpoint: For LLM-based agents and vendor classification
+# - secret: For storing API keys (example: procure-ai-secret-key)
