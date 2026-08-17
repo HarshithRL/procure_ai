@@ -1,2 +1,19 @@
 # Procure AI Workspace dependencies
-# Managed via uv (uv pip compile pyproject.toml -o requirements.txt)
+# Managed via uv: uv pip compile pyproject.toml -o requirements.txt
+# This file is used by Databricks Apps to install runtime dependencies
+
+# Web framework
+flask==3.1.3
+flask-cors==6.0.5
+
+# Database & ORM
+sqlalchemy==2.0.52
+
+# Application server (required for Databricks Apps deployment with gunicorn)
+gunicorn==23.0.0
+
+# Databricks SDK (for platform integration, model serving, Vector Search, etc.)
+databricks-sdk>=0.30.0
+
+# Optional: additional utilities
+python-dotenv>=1.0.0

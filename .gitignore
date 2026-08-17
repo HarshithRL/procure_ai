@@ -50,6 +50,12 @@ htmlcov/
 *.swo
 *~
 
+# SQLite Database (local development only, not deployed)
+*.db
+*.db-journal
+procure_ai.db
+instance/
+
 # OS Files
 .DS_Store
 Thumbs.db
