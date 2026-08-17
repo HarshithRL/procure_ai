@@ -5,15 +5,18 @@ Security:
 - User identity resolved via web_app.auth (single source of truth)
 - Hard tenant scoping: list_projects filters by LOWER(owner_email)
 - Open redirect protection: next= params validated to relative paths only
+- Live workspace assets fetched via OBO token (x-forwarded-access-token)
 """
 
-import re
+import logging
 from flask import Blueprint, jsonify, redirect, request
 
-from ..auth import get_current_user
+from ..auth import get_current_user, get_forwarded_access_token
 from ..database import get_session
 from ..models import Project, User
+from ..workspace_client import get_workspace_client_for_request
 
+logger = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
 
 
@@ -46,93 +49,209 @@ def list_projects():
 @api_bp.route("/auth/profile", methods=["GET"])
 def auth_profile():
     """
-    Get the current authenticated user's profile.
+    Get the current authenticated user's profile enriched with live SCIM data.
+    
+    Returns the user from the database plus live workspace entitlements:
+    - groups: from ws.current_user.me().groups (Databricks group memberships)
+    - entitlements: from ws.current_user.me().entitlements (workspace entitlements)
+    - roles: from ws.current_user.me().roles (if present)
+    
+    OBO token used: x-forwarded-access-token (inherits user's permissions).
+    Falls back to DB data if SCIM fetch fails.
     
     Returns:
-        JSON user object with email, display_name, groups, entitlements
+        JSON user object with all profile fields including live groups/entitlements
     """
     user = get_current_user()
     if not user:
         return jsonify({"error": "Not authenticated"}), 401
-    return jsonify(user.to_dict())
+    
+    profile = user.to_dict()
+    
+    # Enrich with live SCIM data (groups, entitlements, roles)
+    try:
+        ws = get_workspace_client_for_request(dict(request.headers))
+        me = ws.current_user.me()
+        
+        # Extract groups from SCIM object (list of objects with "display" and "value")
+        if hasattr(me, 'groups') and me.groups:
+            profile['groups'] = [g.display if hasattr(g, 'display') else g.value for g in me.groups]
+        
+        # Extract entitlements (list of objects with "value" key)
+        if hasattr(me, 'entitlements') and me.entitlements:
+            profile['entitlements'] = [e.value if hasattr(e, 'value') else str(e) for e in me.entitlements]
+        
+        # Extract roles if present (list of objects with "value" key)
+        if hasattr(me, 'roles') and me.roles:
+            profile['roles'] = [r.value if hasattr(r, 'value') else str(r) for r in me.roles]
+        
+        # Optionally update name/timezone/locale from SCIM (more authoritative than headers)
+        if hasattr(me, 'name') and me.name:
+            if hasattr(me.name, 'formatted') and me.name.formatted:
+                profile['display_name'] = me.name.formatted
+        
+        if hasattr(me, 'timezone') and me.timezone:
+            profile['timezone'] = me.timezone
+        
+        if hasattr(me, 'locale') and me.locale:
+            profile['locale'] = me.locale
+        
+        logger.info(f"Enriched profile for {user.email} with SCIM data")
+    except Exception as e:
+        logger.warning(f"Could not enrich profile with SCIM data for {user.email}: {e}")
+        # Return DB data without SCIM enrichment on failure
+    
+    return jsonify(profile)
 
 
 @api_bp.route("/profile/assets/<section>", methods=["GET"])
 def profile_assets(section: str):
-    data = _asset_data(section)
+    """
+    Get live Databricks workspace assets for a given section.
+    
+    Sections: compute, ai, data, apps
+    Each section independently fetches from the WorkspaceClient using OBO token.
+    On error, returns empty list with error message (graceful degradation).
+    
+    Args:
+        section: One of "compute", "ai", "data", "apps"
+    
+    Returns:
+        JSON dict with section-specific assets, or error flag if fetch failed
+    """
+    data = _get_live_asset_data(section)
     return jsonify(data)
 
 
-def _asset_data(section: str) -> dict:
-    if section == "compute":
-        return {
-            "warehouses": [
-                {
-                    "name": "procure-ai-wh",
-                    "cluster_size": "Small",
-                    "warehouse_type": "PRO",
-                    "state": "RUNNING",
-                },
-                {
-                    "name": "etex-bi-wh",
-                    "cluster_size": "Medium",
-                    "warehouse_type": "STANDARD",
-                    "state": "STOPPED",
-                },
-            ],
-            "clusters": [
-                {
-                    "cluster_name": "vendor-agent-shared",
-                    "spark_version": "15.4.x-scala2.12",
-                    "state": "RUNNING",
-                },
-            ],
-        }
-    if section == "ai":
-        return {
-            "serving_endpoints": [
-                {"name": "procure-ai-chat", "ready": "READY", "config_update": "READY"},
-                {
-                    "name": "vendor-classifier",
-                    "ready": "READY",
-                    "config_update": "READY",
-                },
-            ],
-            "vector_search_endpoints": [
-                {
-                    "name": "procure-vs-endpoint",
-                    "endpoint_type": "STANDARD",
-                    "state": "ONLINE",
-                },
-            ],
-        }
-    if section == "data":
-        return {
-            "catalogs": [
-                {
-                    "name": "harshith_raghunath_d",
-                    "owner": "harshith.raghunath@etexgroup.com",
-                    "catalog_type": "MANAGED_CATALOG",
-                },
-                {"name": "main", "owner": "system", "catalog_type": "SYSTEM_CATALOG"},
-                {
-                    "name": "samples",
-                    "owner": "system",
-                    "catalog_type": "SYSTEM_CATALOG",
-                },
-            ],
-        }
-    if section == "apps":
-        return {
-            "apps": [
-                {
-                    "name": "ds-procure-ai",
-                    "description": "Databricks Procurement Decision Workspace",
-                    "state": "RUNNING",
-                },
-            ],
-        }
-    return {"error": f"Unknown section: {section}"}
+def _get_live_asset_data(section: str) -> dict:
+    """
+    Fetch live Databricks workspace assets via OBO token (x-forwarded-access-token).
+    
+    Each section fetches independently and gracefully degrades on error.
+    Uses try/except per section so one failure doesn't cascade.
+    
+    Args:
+        section: "compute", "ai", "data", or "apps"
+    
+    Returns:
+        Dict with section-specific data, or {"error": "..."} on failure
+    """
+    try:
+        ws = get_workspace_client_for_request(dict(request.headers))
+        
+        if section == "compute":
+            return _get_compute_assets(ws)
+        elif section == "ai":
+            return _get_ai_assets(ws)
+        elif section == "data":
+            return _get_data_assets(ws)
+        elif section == "apps":
+            return _get_apps_assets(ws)
+        else:
+            return {"error": f"Unknown section: {section}"}
+    
+    except Exception as e:
+        logger.error(f"Failed to fetch {section} assets: {e}")
+        return {"error": f"Could not load {section}: {str(e)}", "warehouses": [], "clusters": [], "serving_endpoints": [], "vector_search_endpoints": [], "catalogs": [], "apps": []}
+
+
+def _get_compute_assets(ws) -> dict:
+    """Fetch warehouses and clusters (live)."""
+    try:
+        warehouses = []
+        for w in ws.warehouses.list():
+            warehouses.append({
+                "name": w.name,
+                "cluster_size": w.cluster_size or "—",
+                "warehouse_type": str(w.warehouse_type) if w.warehouse_type else "—",
+                "state": str(w.state) if w.state else "UNKNOWN",
+            })
+    except Exception as e:
+        logger.warning(f"Failed to list warehouses: {e}")
+        warehouses = []
+    
+    try:
+        clusters = []
+        for c in ws.clusters.list():
+            clusters.append({
+                "cluster_name": c.cluster_name or c.cluster_id,
+                "spark_version": c.spark_version or "—",
+                "state": str(c.state) if c.state else "UNKNOWN",
+            })
+    except Exception as e:
+        logger.warning(f"Failed to list clusters: {e}")
+        clusters = []
+    
+    return {"warehouses": warehouses, "clusters": clusters}
+
+
+def _get_ai_assets(ws) -> dict:
+    """Fetch serving endpoints and vector search endpoints (live)."""
+    try:
+        serving_endpoints = []
+        for e in ws.serving_endpoints.list():
+            serving_endpoints.append({
+                "name": e.name,
+                "ready": str(e.state.ready) if e.state and e.state.ready else "UNKNOWN",
+                "config_update": str(e.state.config_update) if e.state and e.state.config_update else "UNKNOWN",
+            })
+    except Exception as e:
+        logger.warning(f"Failed to list serving endpoints: {e}")
+        serving_endpoints = []
+    
+    try:
+        vector_search_endpoints = []
+        vs_list = ws.vector_search_endpoints.list_endpoints()
+        if vs_list and hasattr(vs_list, 'endpoints') and vs_list.endpoints:
+            for e in vs_list.endpoints:
+                vector_search_endpoints.append({
+                    "name": e.name,
+                    "endpoint_type": str(e.endpoint_type) if e.endpoint_type else "STANDARD",
+                    "state": str(e.endpoint_status.state) if e.endpoint_status and e.endpoint_status.state else "UNKNOWN",
+                })
+    except Exception as e:
+        logger.warning(f"Failed to list vector search endpoints: {e}")
+        vector_search_endpoints = []
+    
+    return {"serving_endpoints": serving_endpoints, "vector_search_endpoints": vector_search_endpoints}
+
+
+def _get_data_assets(ws) -> dict:
+    """Fetch Unity Catalog catalogs (live)."""
+    try:
+        catalogs = []
+        for c in ws.catalogs.list():
+            catalogs.append({
+                "name": c.name,
+                "owner": c.owner or "—",
+                "catalog_type": str(c.catalog_type) if c.catalog_type else "—",
+            })
+    except Exception as e:
+        logger.warning(f"Failed to list catalogs: {e}")
+        catalogs = []
+    
+    return {"catalogs": catalogs}
+
+
+def _get_apps_assets(ws) -> dict:
+    """Fetch Databricks Apps (live)."""
+    try:
+        apps = []
+        for a in ws.apps.list():
+            state = "UNKNOWN"
+            if hasattr(a, 'app_status') and a.app_status and hasattr(a.app_status, 'state'):
+                state = str(a.app_status.state)
+            
+            apps.append({
+                "name": a.name,
+                "description": a.description or "—",
+                "state": state,
+            })
+    except Exception as e:
+        logger.warning(f"Failed to list apps: {e}")
+        apps = []
+    
+    return {"apps": apps}
 
 
 @api_bp.route("/logs", methods=["POST"])
