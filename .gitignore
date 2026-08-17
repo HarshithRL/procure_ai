@@ -54,6 +54,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Obsidian local settings (keep workspace tracked, ignore local cache/workspaces if needed)
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
+# Obsidian local UI workspace state (ignore across all subdirs)
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
