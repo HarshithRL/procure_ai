@@ -94,8 +94,13 @@ def get_current_user() -> Optional[User]:
         )
         return provisioned
 
-    # 3. Fallback (local dev): return first user in DB
+    # 3. Fallback (local dev only): return first user in DB
+    # In production (Databricks Apps): SSO headers are always present, so this is unreachable
+    # In local dev: used when testing without SSO proxy (supports multi-user dev DB)
+    # Returns None if no users exist (first startup with empty seed)
     fallback = session.execute(select(User).order_by(User.id)).scalars().first()
     if fallback:
         current_app.logger.debug("No SSO headers; using fallback user: %s", fallback.email)
+    else:
+        current_app.logger.debug("No SSO headers and no users in DB (first startup with empty seed)")
     return fallback
