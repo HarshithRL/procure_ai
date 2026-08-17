@@ -10,6 +10,64 @@ bundle:
 include:
   - resources/*.yml
 
+# Exclude all unnecessary files and directories from deployment
+# Only deploy: app.py, web_app/, shared_library/, resources/, and config files
+exclude_patterns:
+  # Development and testing directories
+  - .venv/
+  - .pytest_cache/
+  - .mypy_cache/
+  - .ruff_cache/
+  - __pycache__/
+  - *.pyc
+  
+  # IDE and editor files
+  - .vscode/
+  - .idea/
+  - .cursor/
+  - .claude/
+  
+  # Git and version control
+  - .git/
+  - .gitignore
+  - .gitattributes
+  
+  # Documentation and config that shouldn't be deployed
+  - .design_docs/
+  - .opencode/
+  - .graphifyignore
+  - *.md
+  - AGENTS.md
+  - README.md
+  - note.md
+  
+  # Database and local artifacts
+  - procure_ai.db
+  - *.db-journal
+  - instance/
+  
+  # Build and distribution artifacts
+  - dist/
+  - build/
+  - *.egg-info/
+  - .eggs/
+  
+  # Environment variables and secrets
+  - .env
+  - .env.local
+  - .env.*.local
+  
+  # Python package manager
+  - uv.lock
+  
+  # Empty or future directories (not part of Sprint 1)
+  - agent_server/
+  - bridge/
+  
+  # OS files
+  - .DS_Store
+  - Thumbs.db
+
 # Multi-environment targets (dev/prod)
 targets:
   # Development environment (default)

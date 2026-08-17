@@ -7,6 +7,10 @@ resources:
     ai_saas:
       name: "ai-saas"
       description: "Procure AI — AI-powered procurement platform for vendor intelligence and comparison"
+      
       # Path to app source code (relative to bundle root)
       # Uses ../ because this file is in resources/, so go up one level to reach the bundle root
+      # Includes: app.py, web_app/, shared_library/, requirements.txt, web_app/app.yaml
+      # Excludes: .venv/, .design_docs/, .git/, *.db, documentation, IDE files, etc.
+      # (see databricks.yml exclude_patterns for full list)
       source_code_path: ..
