@@ -46,8 +46,21 @@
   "mcp": [
     {
       "name": "graphify",
+      "type": "local",
       "description": "Knowledge graph querying — use for architecture questions before grepping",
       "instruction": "From .design_docs/assistent/, run: graphify query \"<question>\" to explore the graph. Graph location: .design_docs/assistent/graphify-out/graph.json"
+    },
+    {
+      "name": "docs-langchain",
+      "type": "http",
+      "url": "https://docs.langchain.com/mcp",
+      "description": "LangChain conceptual guides, how-tos, tutorials, product docs for LangChain, LangGraph, LangSmith"
+    },
+    {
+      "name": "reference-langchain",
+      "type": "http",
+      "url": "https://reference.langchain.com/mcp",
+      "description": "LangChain API reference: classes, methods, parameters, signatures for all LangChain packages"
     }
   ],
   "environment": {

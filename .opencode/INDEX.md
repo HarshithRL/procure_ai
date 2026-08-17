@@ -23,6 +23,12 @@
    - What's installed locally vs. referenced remotely
    - How to load and use each skill
 
+4. **`LANGCHAIN_MCP_GUIDE.md`** (this directory) — 5 min read
+   - LangChain MCP integration (docs-langchain + reference-langchain)
+   - How to query LangChain docs from your IDE
+   - Sprint 1 integration examples
+   - Troubleshooting MCPs
+
 ---
 
 ## 📁 Control Plane Structure
@@ -38,7 +44,8 @@
 │   └── README.md               ← References to local & remote skills
 │
 ├── mcps/
-│   └── graphify.md             ← Knowledge graph MCP config
+│   ├── graphify.md             ← Knowledge graph MCP config
+│   └── langchain.md            ← LangChain docs & reference MCP config
 │
 └── handoffs/
     └── README.md               ← Template & format for inter-agent handoffs
@@ -180,6 +187,18 @@ cd .design_docs/assistent
 graphify query "what are the agent responsibilities?"
 graphify explain "Vendor Comparison"
 ```
+
+### Querying LangChain MCP
+```
+# From your agent/IDE, query LangChain documentation directly
+docs-langchain:
+"How do I build a multi-agent system with LangChain?"
+
+reference-langchain:
+"What are the parameters for ChatOpenAI class?"
+```
+
+See `LANGCHAIN_MCP_GUIDE.md` for full examples.
 
 ### Creating a Task Plan
 Create `.design_docs/assistent/tasks/task_sprint1_flask_app.md`:
