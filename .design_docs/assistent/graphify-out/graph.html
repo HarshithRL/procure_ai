@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>graphify - graphify-out\graph.html</title>
+<script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"
+        integrity="sha384-Ux6phic9PEHJ38YtrijhkzyJ8yQlH8i/+buBR8s3mAZOJrP1gwyvAcIYl3GWtpX1"
+        crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #graph { flex: 1; }
+  #sidebar { width: 280px; background: #1a1a2e; border-left: 1px solid #2a2a4e; display: flex; flex-direction: column; overflow: hidden; }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search { width: 100%; background: #0f0f1a; border: 1px solid #3a3a5e; color: #e0e0e0; padding: 7px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+  #search:focus { border-color: #4E79A7; }
+  #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
+  .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 5px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats { padding: 10px 14px; border-top: 1px solid #2a2a4e; font-size: 11px; color: #555; }
+  #legend-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 0; }
+  #legend-controls label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #aaa; user-select: none; }
+  #legend-controls label:hover { color: #e0e0e0; }
+  .legend-cb, #select-all-cb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; border: 1.5px solid #3a3a5e; border-radius: 3px; background: #0f0f1a; cursor: pointer; position: relative; flex-shrink: 0; }
+  .legend-cb:checked, #select-all-cb:checked { background: #4E79A7; border-color: #4E79A7; }
+  .legend-cb:checked::after, #select-all-cb:checked::after { content: ''; position: absolute; left: 3.5px; top: 1px; width: 4px; height: 7px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  #select-all-cb:indeterminate { background: #4E79A7; border-color: #4E79A7; }
+  #select-all-cb:indeterminate::after { content: ''; position: absolute; left: 2px; top: 5px; width: 8px; height: 2px; background: #fff; border: none; transform: none; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search nodes..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>Node Info</h3>
+    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>Communities</h3>
+    <div id="legend-controls">
+      <label><input type="checkbox" id="select-all-cb" checked onchange="toggleAllCommunities(!this.checked)">Select All</label>
+    </div>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">63 nodes &middot; 54 edges &middot; 13 communities</div>
+</div>
+<script>
+const RAW_NODES = [{"id": "design_docs_assistent_filter_detect", "label": "filter_detect.py", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "filter_detect.py", "community": 11, "community_name": "Core Capabilities", "source_file": ".design_docs/assistent/filter_detect.py", "file_type": "code", "degree": 0}, {"id": "pkg_procure_ai", "label": "procure-ai", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "procure-ai", "community": 12, "community_name": "Flask & Tech Stack", "source_file": "pyproject.toml", "file_type": "code", "degree": 0}, {"id": "design_docs_knowledge_00_usecase_procure_ai_workspace", "label": "Procure AI Workspace", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Procure AI Workspace", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 3}, {"id": "design_docs_knowledge_00_usecase_vendor_comparison", "label": "Vendor Comparison", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Vendor Comparison", "community": 4, "community_name": "Vendor Intelligence", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 3}, {"id": "design_docs_knowledge_00_usecase_purchase_project", "label": "Purchase Project", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 34.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Purchase Project", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 4}, {"id": "design_docs_knowledge_00_usecase_direct_purchase", "label": "Direct Purchase", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Direct Purchase", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_00_usecase_indirect_purchase", "label": "Indirect Purchase", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Indirect Purchase", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_00_usecase_comparison_matrix", "label": "Comparison Matrix", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Comparison Matrix", "community": 4, "community_name": "Vendor Intelligence", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_00_usecase_ppt_presentation", "label": "PPT Presentation", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "PPT Presentation", "community": 4, "community_name": "Vendor Intelligence", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_00_usecase_ai_assistant", "label": "AI Assistant", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "AI Assistant", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/Knowledge/00 Usecase.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_01_end_to_end_flow_purchase_knowledge_graph", "label": "Purchase Knowledge Graph", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Purchase Knowledge Graph", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/01 End-to-End Flow.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_02_core_product_knowledge_graph_building", "label": "Knowledge Graph Building", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Knowledge Graph Building", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 5}, {"id": "design_docs_knowledge_02_core_product_document_intelligence", "label": "Document Intelligence", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Document Intelligence", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_02_core_product_requirement_intelligence", "label": "Requirement Intelligence", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Requirement Intelligence", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_02_core_product_vendor_intelligence", "label": "Vendor Intelligence", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Vendor Intelligence", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_02_core_product_comparison_intelligence", "label": "Comparison Intelligence", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Comparison Intelligence", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 3}, {"id": "design_docs_knowledge_02_core_product_decision_intelligence", "label": "Decision Intelligence", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Decision Intelligence", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_02_core_product_evidence_graph", "label": "Evidence Graph", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Evidence Graph", "community": 1, "community_name": "Agent Architecture", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_ai_system_entity_extraction", "label": "Entity & Fact Extraction", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Entity &amp; Fact Extraction", "community": 6, "community_name": "Decision Support", "source_file": ".design_docs/Knowledge/03 AI System Core Components.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_ai_system_relationship_extraction", "label": "Relationship Extraction", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Relationship Extraction", "community": 6, "community_name": "Decision Support", "source_file": ".design_docs/Knowledge/03 AI System Core Components.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_03_ai_system_knowledge_normalization", "label": "Knowledge Normalization", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Knowledge Normalization", "community": 6, "community_name": "Decision Support", "source_file": ".design_docs/Knowledge/03 AI System Core Components.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_03_ai_system_knowledge_validation", "label": "Knowledge Validation", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Knowledge Validation", "community": 6, "community_name": "Decision Support", "source_file": ".design_docs/Knowledge/03 AI System Core Components.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_03_ai_system_hitl_knowledge_acquisition", "label": "HITL Knowledge Acquisition", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "HITL Knowledge Acquisition", "community": 6, "community_name": "Decision Support", "source_file": ".design_docs/Knowledge/03 AI System Core Components.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_ai_system_agent_layer", "label": "Agent Layer", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Agent Layer", "community": 5, "community_name": "Comparison Engine", "source_file": ".design_docs/Knowledge/03 AI System Core Components.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_1_vendor_comparison_like_for_like", "label": "Like-for-Like Comparison", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Like-for-Like Comparison", "community": 9, "community_name": "Databricks Infrastructure", "source_file": ".design_docs/Knowledge/03.1 Domain Knowledge - Vendor Comparison.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_03_1_vendor_comparison_tco", "label": "Total Cost of Ownership", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Total Cost of Ownership", "community": 9, "community_name": "Databricks Infrastructure", "source_file": ".design_docs/Knowledge/03.1 Domain Knowledge - Vendor Comparison.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_1_vendor_comparison_result_states", "label": "Comparison Result States", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Comparison Result States", "community": 9, "community_name": "Databricks Infrastructure", "source_file": ".design_docs/Knowledge/03.1 Domain Knowledge - Vendor Comparison.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_2_etex_vendor_comparison_direct", "label": "Etex Direct Comparison", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Etex Direct Comparison", "community": 8, "community_name": "Sprint 1 Delivery", "source_file": ".design_docs/Knowledge/03.2 Domain Knowledge \u2014 Etex Vendor Comparison.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_03_2_etex_vendor_comparison_indirect", "label": "Etex Indirect / IT Comparison", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Etex Indirect / IT Comparison", "community": 8, "community_name": "Sprint 1 Delivery", "source_file": ".design_docs/Knowledge/03.2 Domain Knowledge \u2014 Etex Vendor Comparison.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_03_2_etex_commercial_normalization", "label": "Commercial Normalization", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Commercial Normalization", "community": 8, "community_name": "Sprint 1 Delivery", "source_file": ".design_docs/Knowledge/03.2 Domain Knowledge \u2014 Etex Vendor Comparison.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_03_2_etex_red_flags", "label": "Red Flag Knowledge", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Red Flag Knowledge", "community": 8, "community_name": "Sprint 1 Delivery", "source_file": ".design_docs/Knowledge/03.2 Domain Knowledge \u2014 Etex Vendor Comparison.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_04_agent_system_arch_orchestration", "label": "Purchase Orchestrator", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Purchase Orchestrator", "community": 5, "community_name": "Comparison Engine", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_procurement_controller", "label": "Procurement Controller", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Procurement Controller", "community": 5, "community_name": "Comparison Engine", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_purchase_intelligence", "label": "Purchase Intelligence Model", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Purchase Intelligence Model", "community": 5, "community_name": "Comparison Engine", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_intake_agent", "label": "Intake Agent", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Intake Agent", "community": 7, "community_name": "Data & Artifacts", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_04_agent_system_arch_document_intelligence_agent", "label": "Document Intelligence Agent", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Document Intelligence Agent", "community": 7, "community_name": "Data & Artifacts", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_vendor_intelligence_agent", "label": "Vendor Intelligence Agent", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Vendor Intelligence Agent", "community": 7, "community_name": "Data & Artifacts", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_evidence_agent", "label": "Evidence Agent", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Evidence Agent", "community": 7, "community_name": "Data & Artifacts", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_knowledge_builder", "label": "Knowledge Builder Agent", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Knowledge Builder Agent", "community": 7, "community_name": "Data & Artifacts", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_evaluation_agent", "label": "Evaluation Agent", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Evaluation Agent", "community": 3, "community_name": "Knowledge Graph & Evidence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 3}, {"id": "design_docs_knowledge_04_agent_system_arch_comparison_agent", "label": "Comparison Agent", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Comparison Agent", "community": 3, "community_name": "Knowledge Graph & Evidence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_risk_agent", "label": "Risk Agent", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Risk Agent", "community": 3, "community_name": "Knowledge Graph & Evidence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_decision_intelligence_agent", "label": "Decision Intelligence Agent", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Decision Intelligence Agent", "community": 3, "community_name": "Knowledge Graph & Evidence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_artifact_agent", "label": "Artifact Agent", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Artifact Agent", "community": 4, "community_name": "Vendor Intelligence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_04_agent_system_arch_hybrid_knowledge", "label": "Hybrid Knowledge Architecture", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Hybrid Knowledge Architecture", "community": 5, "community_name": "Comparison Engine", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_05_01_flow_understand_stage", "label": "Understand Stage", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Understand Stage", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_05_01_flow_prepare_stage", "label": "Prepare Stage", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Prepare Stage", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md", "file_type": "concept", "degree": 3}, {"id": "design_docs_knowledge_05_01_flow_compare_stage", "label": "Compare Stage", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Compare Stage", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_05_01_flow_decide_stage", "label": "Decide Stage", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 28.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Decide Stage", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md", "file_type": "concept", "degree": 3}, {"id": "design_docs_knowledge_05_01_flow_deliver_stage", "label": "Deliver Stage", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Deliver Stage", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_05_01_flow_purchase_readiness", "label": "Purchase Readiness", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Purchase Readiness", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_05_1_application_view_purchase_decision_workspace", "label": "Purchase Decision Workspace", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Purchase Decision Workspace", "community": 10, "community_name": "Development & Governance", "source_file": ".design_docs/Knowledge/05.1 Application View.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_05_1_application_view_dashboard", "label": "Dashboard", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Dashboard", "community": 10, "community_name": "Development & Governance", "source_file": ".design_docs/Knowledge/05.1 Application View.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_05_1_application_view_ai_copilot", "label": "AI Copilot", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "AI Copilot", "community": 10, "community_name": "Development & Governance", "source_file": ".design_docs/Knowledge/05.1 Application View.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_05_1_application_view_decision_brief", "label": "Decision Brief", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Decision Brief", "community": 2, "community_name": "Application UX & UI", "source_file": ".design_docs/Knowledge/05.1 Application View.md", "file_type": "concept", "degree": 1}, {"id": "readme_procure_ai_workspace", "label": "Procure AI Workspace Project", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Procure AI Workspace Project", "community": 0, "community_name": "Procurement Domain Model", "source_file": "README.md", "file_type": "document", "degree": 2}, {"id": "design_docs_assistent_setup_details_databricks", "label": "Databricks App Deployment", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Databricks App Deployment", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/assistent/setup_details.md", "file_type": "rationale", "degree": 2}, {"id": "design_docs_assistent_setup_details_flask", "label": "Flask Application Framework", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Flask Application Framework", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/assistent/setup_details.md", "file_type": "rationale", "degree": 2}, {"id": "design_docs_assistent_setup_details_uv_package_manager", "label": "UV Package Manager", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "UV Package Manager", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/assistent/setup_details.md", "file_type": "rationale", "degree": 2}, {"id": "design_docs_assistent_setup_details_git_workflow", "label": "Git Version Control Workflow", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Git Version Control Workflow", "community": 0, "community_name": "Procurement Domain Model", "source_file": ".design_docs/assistent/setup_details.md", "file_type": "rationale", "degree": 1}, {"id": "design_docs_knowledge_04_agent_system_arch_deterministic_scoring", "label": "Deterministic Scoring Engine", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 16.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Deterministic Scoring Engine", "community": 3, "community_name": "Knowledge Graph & Evidence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 1}, {"id": "design_docs_knowledge_04_agent_system_arch_hitl", "label": "Human-in-the-Loop", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Human-in-the-Loop", "community": 3, "community_name": "Knowledge Graph & Evidence", "source_file": ".design_docs/Knowledge/04 Agent System Arch.md", "file_type": "concept", "degree": 2}, {"id": "design_docs_knowledge_02_core_product_artifact_generation", "label": "Artifact Generation", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 22.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Artifact Generation", "community": 4, "community_name": "Vendor Intelligence", "source_file": ".design_docs/Knowledge/02 Core Product Capability.md", "file_type": "concept", "degree": 2}];
+const RAW_EDGES = [{"from": "design_docs_knowledge_00_usecase_procure_ai_workspace", "to": "design_docs_knowledge_00_usecase_purchase_project", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_procure_ai_workspace", "to": "design_docs_knowledge_00_usecase_vendor_comparison", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_procure_ai_workspace", "to": "readme_procure_ai_workspace", "label": "cites", "title": "cites [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_vendor_comparison", "to": "design_docs_knowledge_00_usecase_comparison_matrix", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_vendor_comparison", "to": "design_docs_knowledge_00_usecase_ppt_presentation", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_purchase_project", "to": "design_docs_knowledge_00_usecase_ai_assistant", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_purchase_project", "to": "design_docs_knowledge_00_usecase_direct_purchase", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_purchase_project", "to": "design_docs_knowledge_00_usecase_indirect_purchase", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_00_usecase_comparison_matrix", "to": "design_docs_knowledge_02_core_product_artifact_generation", "label": "conceptually_related_to", "title": "conceptually_related_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "design_docs_knowledge_01_end_to_end_flow_purchase_knowledge_graph", "to": "design_docs_knowledge_02_core_product_knowledge_graph_building", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "design_docs_knowledge_02_core_product_knowledge_graph_building", "to": "design_docs_knowledge_02_core_product_document_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_02_core_product_knowledge_graph_building", "to": "design_docs_knowledge_02_core_product_evidence_graph", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_02_core_product_knowledge_graph_building", "to": "design_docs_knowledge_02_core_product_requirement_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_02_core_product_knowledge_graph_building", "to": "design_docs_knowledge_02_core_product_vendor_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_02_core_product_requirement_intelligence", "to": "design_docs_knowledge_02_core_product_comparison_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_02_core_product_vendor_intelligence", "to": "design_docs_knowledge_02_core_product_comparison_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_02_core_product_comparison_intelligence", "to": "design_docs_knowledge_02_core_product_decision_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_ai_system_entity_extraction", "to": "design_docs_knowledge_03_ai_system_relationship_extraction", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_ai_system_relationship_extraction", "to": "design_docs_knowledge_03_ai_system_knowledge_normalization", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_ai_system_knowledge_normalization", "to": "design_docs_knowledge_03_ai_system_knowledge_validation", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_ai_system_knowledge_validation", "to": "design_docs_knowledge_03_ai_system_hitl_knowledge_acquisition", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_ai_system_agent_layer", "to": "design_docs_knowledge_04_agent_system_arch_orchestration", "label": "conceptually_related_to", "title": "conceptually_related_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "design_docs_knowledge_03_1_vendor_comparison_like_for_like", "to": "design_docs_knowledge_03_1_vendor_comparison_result_states", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_1_vendor_comparison_like_for_like", "to": "design_docs_knowledge_03_1_vendor_comparison_tco", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_2_etex_vendor_comparison_direct", "to": "design_docs_knowledge_03_2_etex_commercial_normalization", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_2_etex_vendor_comparison_direct", "to": "design_docs_knowledge_03_2_etex_vendor_comparison_indirect", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_03_2_etex_commercial_normalization", "to": "design_docs_knowledge_03_2_etex_red_flags", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_orchestration", "to": "design_docs_knowledge_04_agent_system_arch_procurement_controller", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_procurement_controller", "to": "design_docs_knowledge_04_agent_system_arch_purchase_intelligence", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_purchase_intelligence", "to": "design_docs_knowledge_04_agent_system_arch_hybrid_knowledge", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_intake_agent", "to": "design_docs_knowledge_04_agent_system_arch_document_intelligence_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_document_intelligence_agent", "to": "design_docs_knowledge_04_agent_system_arch_vendor_intelligence_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_vendor_intelligence_agent", "to": "design_docs_knowledge_04_agent_system_arch_evidence_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_evidence_agent", "to": "design_docs_knowledge_04_agent_system_arch_knowledge_builder", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_knowledge_builder", "to": "design_docs_knowledge_04_agent_system_arch_evaluation_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_evaluation_agent", "to": "design_docs_knowledge_04_agent_system_arch_comparison_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_evaluation_agent", "to": "design_docs_knowledge_04_agent_system_arch_deterministic_scoring", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_comparison_agent", "to": "design_docs_knowledge_04_agent_system_arch_risk_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_risk_agent", "to": "design_docs_knowledge_04_agent_system_arch_decision_intelligence_agent", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_decision_intelligence_agent", "to": "design_docs_knowledge_04_agent_system_arch_hitl", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_04_agent_system_arch_artifact_agent", "to": "design_docs_knowledge_02_core_product_artifact_generation", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "design_docs_knowledge_04_agent_system_arch_artifact_agent", "to": "design_docs_knowledge_04_agent_system_arch_hitl", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_01_flow_understand_stage", "to": "design_docs_knowledge_05_01_flow_prepare_stage", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_01_flow_prepare_stage", "to": "design_docs_knowledge_05_01_flow_compare_stage", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_01_flow_prepare_stage", "to": "design_docs_knowledge_05_01_flow_purchase_readiness", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_01_flow_compare_stage", "to": "design_docs_knowledge_05_01_flow_decide_stage", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_01_flow_decide_stage", "to": "design_docs_knowledge_05_01_flow_deliver_stage", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_01_flow_decide_stage", "to": "design_docs_knowledge_05_1_application_view_decision_brief", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "design_docs_knowledge_05_1_application_view_purchase_decision_workspace", "to": "design_docs_knowledge_05_1_application_view_ai_copilot", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_knowledge_05_1_application_view_purchase_decision_workspace", "to": "design_docs_knowledge_05_1_application_view_dashboard", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "readme_procure_ai_workspace", "to": "design_docs_assistent_setup_details_databricks", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_assistent_setup_details_databricks", "to": "design_docs_assistent_setup_details_flask", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_assistent_setup_details_flask", "to": "design_docs_assistent_setup_details_uv_package_manager", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "design_docs_assistent_setup_details_uv_package_manager", "to": "design_docs_assistent_setup_details_git_workflow", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}];
+const LEGEND = [{"cid": 0, "color": "#4E79A7", "label": "Procurement Domain Model", "count": 10}, {"cid": 1, "color": "#F28E2B", "label": "Agent Architecture", "count": 8}, {"cid": 2, "color": "#E15759", "label": "Application UX &amp; UI", "count": 7}, {"cid": 3, "color": "#76B7B2", "label": "Knowledge Graph &amp; Evidence", "count": 6}, {"cid": 4, "color": "#59A14F", "label": "Vendor Intelligence", "count": 5}, {"cid": 5, "color": "#EDC948", "label": "Comparison Engine", "count": 5}, {"cid": 6, "color": "#B07AA1", "label": "Decision Support", "count": 5}, {"cid": 7, "color": "#FF9DA7", "label": "Data &amp; Artifacts", "count": 5}, {"cid": 8, "color": "#9C755F", "label": "Sprint 1 Delivery", "count": 4}, {"cid": 9, "color": "#BAB0AC", "label": "Databricks Infrastructure", "count": 3}, {"cid": 10, "color": "#4E79A7", "label": "Development &amp; Governance", "count": 3}, {"cid": 11, "color": "#F28E2B", "label": "Core Capabilities", "count": 1}, {"cid": 12, "color": "#E15759", "label": "Flask &amp; Tech Stack", "count": 1}];
+
+// HTML-escape helper — prevents XSS when injecting graph data into innerHTML
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Build vis datasets
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id, label: n.label, color: n.color, size: n.size,
+  font: n.font, title: n.title,
+  _community: n.community, _community_name: n.community_name,
+  _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i, from: e.from, to: e.to,
+  label: '',
+  title: e.title,
+  dashes: e.dashes,
+  width: e.width,
+  color: e.color,
+  arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.005,
+      springLength: 120,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: true,
+    navigationButtons: false,
+    keyboard: false,
+  },
+  nodes: { shape: 'dot', borderWidth: 1.5 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${esc(color)}" data-nid="${esc(nid)}">${esc(nb ? nb.label : nid)}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b>${esc(n.label)}</b></div>
+    <div class="field">Type: ${esc(n._file_type || 'unknown')}</div>
+    <div class="field">Community: ${esc(n._community_name)}</div>
+    <div class="field">Source: ${esc(n._source_file || '-')}</div>
+    <div class="field">Degree: ${n._degree}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
+  `;
+}
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+// Neighbor links use a data attribute + one delegated listener rather than an
+// inline onclick. A node id/label sourced from a document or a scraped URL
+// (graphify add) can contain a double-quote; dropping the stringified id
+// unescaped into a quoted onclick both broke every link and allowed a hostile
+// source to inject an event handler into the local report (stored XSS, #1838).
+// esc() on data-nid keeps the value inside the attribute; the listener reads it
+// back verbatim. Bound to document so it survives the innerHTML rebuild that
+// recreates #neighbors-list on each showInfo().
+document.addEventListener('click', e => {
+  const el = e.target.closest('.neighbor-link');
+  if (el && el.dataset.nid !== undefined) focusNode(el.dataset.nid);
+});
+
+// Track hovered node — hover detection is more reliable than click params
+let hoveredNodeId = null;
+network.on('hoverNode', params => {
+  hoveredNodeId = params.node;
+  container.style.cursor = 'pointer';
+});
+network.on('blurNode', () => {
+  hoveredNodeId = null;
+  container.style.cursor = 'default';
+});
+container.addEventListener('click', () => {
+  if (hoveredNodeId !== null) {
+    showInfo(hoveredNodeId);
+    network.selectNodes([hoveredNodeId]);
+  }
+});
+network.on('click', params => {
+  if (params.nodes.length > 0) {
+    showInfo(params.nodes[0]);
+  } else if (hoveredNodeId === null) {
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+  }
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q)).slice(0, 20);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color.background}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      network.focus(n.id, { scale: 1.5, animation: true });
+      network.selectNodes([n.id]);
+      showInfo(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+
+const selectAllCb = document.getElementById('select-all-cb');
+
+function updateSelectAllState() {
+  const total = LEGEND.length;
+  const hidden = hiddenCommunities.size;
+  selectAllCb.checked = hidden === 0;
+  selectAllCb.indeterminate = hidden > 0 && hidden < total;
+}
+
+function toggleAllCommunities(hide) {
+  document.querySelectorAll('.legend-item').forEach(item => {
+    hide ? item.classList.add('dimmed') : item.classList.remove('dimmed');
+  });
+  document.querySelectorAll('.legend-cb').forEach(cb => {
+    cb.checked = !hide;
+  });
+  LEGEND.forEach(c => {
+    if (hide) hiddenCommunities.add(c.cid); else hiddenCommunities.delete(c.cid);
+  });
+  const updates = RAW_NODES.map(n => ({ id: n.id, hidden: hide }));
+  nodesDS.update(updates);
+  updateSelectAllState();
+}
+
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'legend-cb';
+  cb.checked = true;
+  cb.addEventListener('change', (e) => {
+    e.stopPropagation();
+    if (cb.checked) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: !cb.checked }));
+    nodesDS.update(updates);
+    updateSelectAllState();
+  });
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${c.label}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.prepend(cb);
+  item.onclick = (e) => {
+    if (e.target === cb) return;
+    cb.checked = !cb.checked;
+    cb.dispatchEvent(new Event('change'));
+  };
+  legendEl.appendChild(item);
+});
+</script>
+<script>
+// Render hyperedges as shaded regions
+const hyperedges = [{"id": "hyperedge_core_procurement_workflow", "label": "Core Procurement Workflow", "nodes": ["design_docs_knowledge_05_01_flow_understand_stage", "design_docs_knowledge_05_01_flow_prepare_stage", "design_docs_knowledge_05_01_flow_compare_stage", "design_docs_knowledge_05_01_flow_decide_stage", "design_docs_knowledge_05_01_flow_deliver_stage"], "relation": "participate_in", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md"}, {"id": "hyperedge_agent_knowledge_chain", "label": "Agent Knowledge Processing Chain", "nodes": ["design_docs_knowledge_04_agent_system_arch_intake_agent", "design_docs_knowledge_04_agent_system_arch_document_intelligence_agent", "design_docs_knowledge_04_agent_system_arch_vendor_intelligence_agent", "design_docs_knowledge_04_agent_system_arch_evidence_agent", "design_docs_knowledge_04_agent_system_arch_knowledge_builder"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": ".design_docs/Knowledge/04 Agent System Arch.md"}, {"id": "hyperedge_agent_decision_chain", "label": "Agent Decision Intelligence Chain", "nodes": ["design_docs_knowledge_04_agent_system_arch_evaluation_agent", "design_docs_knowledge_04_agent_system_arch_comparison_agent", "design_docs_knowledge_04_agent_system_arch_risk_agent", "design_docs_knowledge_04_agent_system_arch_decision_intelligence_agent"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": ".design_docs/Knowledge/04 Agent System Arch.md"}, {"id": "hyperedge_core_capabilities_stack", "label": "Core Capabilities Stack", "nodes": ["design_docs_knowledge_02_core_product_document_intelligence", "design_docs_knowledge_02_core_product_requirement_intelligence", "design_docs_knowledge_02_core_product_vendor_intelligence", "design_docs_knowledge_02_core_product_comparison_intelligence", "design_docs_knowledge_02_core_product_decision_intelligence"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": ".design_docs/Knowledge/02 Core Product Capability.md"}];
+// afterDrawing passes ctx already transformed to network coordinate space.
+// Draw node positions raw — no manual pan/zoom/DPR math needed.
+network.on('afterDrawing', function(ctx) {
+    hyperedges.forEach(h => {
+        const positions = h.nodes
+            .map(nid => network.getPositions([nid])[nid])
+            .filter(p => p !== undefined);
+        if (positions.length < 2) return;
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#6366f1';
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Centroid and expanded hull in network coordinates
+        const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
+        const cy = positions.reduce((s, p) => s + p.y, 0) / positions.length;
+        const expanded = positions.map(p => ({
+            x: cx + (p.x - cx) * 1.15,
+            y: cy + (p.y - cy) * 1.15
+        }));
+        ctx.moveTo(expanded[0].x, expanded[0].y);
+        expanded.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        // Label
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, cx, cy - 5);
+        ctx.restore();
+    });
+});
+</script>
+</body>
+</html>
