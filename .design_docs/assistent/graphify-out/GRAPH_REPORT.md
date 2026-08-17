@@ -1,118 +1,111 @@
-# Graph Report - D:\Work\Etex\Procure_AI_Workspace  (2026-08-18)
+# Graph Report - assistent  (2026-08-18)
 
 ## Corpus Check
-- 23 files · ~19,857 words
+- 9 files · ~11,389 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 63 nodes · 54 edges · 13 communities (12 shown, 1 thin omitted)
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.86)
+- 246 nodes · 238 edges · 11 communities
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
+## Graph Freshness
+- Built from commit: `9264d78b`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
+
 ## Community Hubs (Navigation)
-- Procurement Domain Model
-- Agent Architecture
-- Application UX & UI
-- Knowledge Graph & Evidence
-- Vendor Intelligence
-- Comparison Engine
-- Decision Support
-- Data & Artifacts
-- Sprint 1 Delivery
-- Databricks Infrastructure
-- Development & Governance
-- Flask & Tech Stack
+- ✅ Databricks App Deployment Setup — COMPLETE
+- Databricks App Deployment Setup — Complete Reference
+- LangChain MCP Setup Complete
+- Databricks App Deployment Verification Guide
+- 4. Master Git Version Control Reference
+- Sprint 1 Deployment Task — Databricks App Setup
+- Project Status — Procure AI Workspace
+- Handoff: Sprint 1 Databricks App Deployment Setup
+- Databricks App Deployment — Quick Checklist
+- 2.2 Package Management & Dependencies
+- Who Can Use It
 
 ## God Nodes (most connected - your core abstractions)
-1. `Knowledge Graph Building` - 5 edges
-2. `Purchase Project` - 4 edges
-3. `Procure AI Workspace` - 3 edges
-4. `Vendor Comparison` - 3 edges
-5. `Comparison Intelligence` - 3 edges
-6. `Evaluation Agent` - 3 edges
-7. `Prepare Stage` - 3 edges
-8. `Decide Stage` - 3 edges
-9. `Comparison Matrix` - 2 edges
-10. `Requirement Intelligence` - 2 edges
+1. `✅ Databricks App Deployment Setup — COMPLETE` - 15 edges
+2. `Databricks App Deployment Setup — Complete Reference` - 13 edges
+3. `LangChain MCP Setup Complete` - 13 edges
+4. `Project Status — Procure AI Workspace` - 13 edges
+5. `4. Master Git Version Control Reference` - 11 edges
+6. `Databricks App Deployment — Quick Checklist` - 10 edges
+7. `Databricks App Deployment Verification Guide` - 10 edges
+8. `Handoff: Sprint 1 Databricks App Deployment Setup` - 10 edges
+9. `Sprint 1 Deployment Task — Databricks App Setup` - 10 edges
+10. `Who Can Use It` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Purchase Knowledge Graph` --semantically_similar_to--> `Knowledge Graph Building`  [INFERRED] [semantically similar]
-  .design_docs/Knowledge/01 End-to-End Flow.md → .design_docs/Knowledge/02 Core Product Capability.md
-- `Procure AI Workspace` --cites--> `Procure AI Workspace Project`  [EXTRACTED]
-  .design_docs/Knowledge/00 Usecase.md → README.md
-- `Artifact Agent` --semantically_similar_to--> `Artifact Generation`  [INFERRED] [semantically similar]
-  .design_docs/Knowledge/04 Agent System Arch.md → .design_docs/Knowledge/02 Core Product Capability.md
-- `Decide Stage` --semantically_similar_to--> `Decision Brief`  [INFERRED] [semantically similar]
-  .design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md → .design_docs/Knowledge/05.1 Application View.md
-- `Procure AI Workspace Project` --conceptually_related_to--> `Databricks App Deployment`  [EXTRACTED]
-  README.md → .design_docs/assistent/setup_details.md
+- None detected - all connections are within the same source files.
 
-## Import Cycles
-- None detected.
+## Communities (11 total, 0 thin omitted)
 
-## Hyperedges (group relationships)
-- **Core Procurement Workflow** — design_docs_knowledge_05_01_flow_understand_stage, design_docs_knowledge_05_01_flow_prepare_stage, design_docs_knowledge_05_01_flow_compare_stage, design_docs_knowledge_05_01_flow_decide_stage, design_docs_knowledge_05_01_flow_deliver_stage [EXTRACTED 1.00]
-- **Agent Knowledge Processing Chain** — design_docs_knowledge_04_agent_system_arch_intake_agent, design_docs_knowledge_04_agent_system_arch_document_intelligence_agent, design_docs_knowledge_04_agent_system_arch_vendor_intelligence_agent, design_docs_knowledge_04_agent_system_arch_evidence_agent, design_docs_knowledge_04_agent_system_arch_knowledge_builder [EXTRACTED 1.00]
-- **Agent Decision Intelligence Chain** — design_docs_knowledge_04_agent_system_arch_evaluation_agent, design_docs_knowledge_04_agent_system_arch_comparison_agent, design_docs_knowledge_04_agent_system_arch_risk_agent, design_docs_knowledge_04_agent_system_arch_decision_intelligence_agent [EXTRACTED 1.00]
-- **Core Capabilities Stack** — design_docs_knowledge_02_core_product_document_intelligence, design_docs_knowledge_02_core_product_requirement_intelligence, design_docs_knowledge_02_core_product_vendor_intelligence, design_docs_knowledge_02_core_product_comparison_intelligence, design_docs_knowledge_02_core_product_decision_intelligence [EXTRACTED 1.00]
+### Community 0 - "✅ Databricks App Deployment Setup — COMPLETE"
+Cohesion: 0.06
+Nodes (34): 1. Exclude Patterns in DAB Bundle, 1. Validation Phase, 2. Database Strategy (Sprint 1), 2. Deployment Phase, 3. Configuration Structure, 3. Startup Phase, 4. Verification Phase, 🔧 Configuration Files Created (+26 more)
 
-## Communities (13 total, 1 thin omitted)
+### Community 1 - "Databricks App Deployment Setup — Complete Reference"
+Cohesion: 0.06
+Nodes (33): 1. Bundle Structure, 2. Exclusion Pattern Matching, 3. App Startup, Authentication, Common Issues, Configuration Files Created, DAB Configuration Files, Database Behavior (+25 more)
 
-### Community 0 - "Procurement Domain Model"
-Cohesion: 0.20
-Nodes (10): Databricks App Deployment, Flask Application Framework, Git Version Control Workflow, UV Package Manager, AI Assistant, Direct Purchase, Indirect Purchase, Procure AI Workspace (+2 more)
+### Community 2 - "LangChain MCP Setup Complete"
+Cohesion: 0.06
+Nodes (30): ✅ All Systems Operational, Architecture, Bottom Line, Documentation & Guides, Documentation Structure, Example Sprint 1 Tasks, File Changes Summary, For Claude Code (Works Immediately) (+22 more)
 
-### Community 1 - "Agent Architecture"
+### Community 3 - "Databricks App Deployment Verification Guide"
+Cohesion: 0.07
+Nodes (27): 1. Check App Status, 2. Stream Logs, 3. Access the App, 4. Test Endpoints, 5. Verify Seed Data, Bundle Validation Checklist, Databricks App Deployment Verification Guide, Deploy (+19 more)
+
+### Community 4 - "4. Master Git Version Control Reference"
+Cohesion: 0.08
+Nodes (22): 1.1 Strict Access Rules, 1.2 Multi-Agent Workspace Organization, 1. Governance & Multi-Agent Collaboration, 3.1 Flask / Backend Development Server, 3.2 Frontend & UI Build Commands (Node / npm / Vite), 3.3 Databricks Apps & SSO Integration, 3. UI, Web App & Databricks Execution, 4.10 Releases & Tagging (+14 more)
+
+### Community 5 - "Sprint 1 Deployment Task — Databricks App Setup"
+Cohesion: 0.08
+Nodes (23): 1. Created Flask Entrypoint (`app.py`), 2. Created Databricks App Config (`web_app/app.yaml`), 3. Created DAB Bundle Config (`databricks.yml`), 4. Created App Resource Definition (`resources/ai_saas.app.yml`), 5. Updated Requirements (`requirements.txt`), 6. Updated `.gitignore`, Architecture, Authentication (+15 more)
+
+### Community 6 - "Project Status — Procure AI Workspace"
+Cohesion: 0.09
+Nodes (22): 1. AGENTS.md (Central Instruction File), 2. Knowledge Graph, 3. opencode.json (Project Configuration), 4. .opencode/ Control Plane (Agent Workspace), 5. Governance & Guidance, Built-in OpenCode Skills ✅, Contacts / Issues, Executive Summary (+14 more)
+
+### Community 7 - "Handoff: Sprint 1 Databricks App Deployment Setup"
+Cohesion: 0.10
+Nodes (20): Common Issues & Solutions, Database Persistence (Sprint 1 vs 2), Deployment Readiness, Files Created, Files Modified, Git Status, Handoff: Sprint 1 Databricks App Deployment Setup, Important Notes (+12 more)
+
+### Community 8 - "Databricks App Deployment — Quick Checklist"
+Cohesion: 0.18
+Nodes (10): After Deployment, Databricks App Deployment — Quick Checklist, Deployment (Copy/Paste These Commands), Handy References, Key Files Deployed, Key Files NOT Deployed, Post-Deployment (Verify These), Pre-Deployment (Do These First) (+2 more)
+
+### Community 9 - "2.2 Package Management & Dependencies"
+Cohesion: 0.22
+Nodes (9): 2.1 Virtual Environment Setup, 2.2 Package Management & Dependencies, 2.3 Running Scripts, Tests & Tools with `uv`, 2. Python & UV Environment Management, Activate Virtual Environment, Adding & Removing Dependencies, Create & Manage Virtual Environment, Inspecting Packages (+1 more)
+
+### Community 10 - "Who Can Use It"
 Cohesion: 0.29
-Nodes (8): Purchase Knowledge Graph, Comparison Intelligence, Decision Intelligence, Document Intelligence, Evidence Graph, Knowledge Graph Building, Requirement Intelligence, Vendor Intelligence
-
-### Community 2 - "Application UX & UI"
-Cohesion: 0.29
-Nodes (7): Compare Stage, Decide Stage, Deliver Stage, Prepare Stage, Purchase Readiness, Understand Stage, Decision Brief
-
-### Community 3 - "Knowledge Graph & Evidence"
-Cohesion: 0.33
-Nodes (6): Comparison Agent, Decision Intelligence Agent, Deterministic Scoring Engine, Evaluation Agent, Human-in-the-Loop, Risk Agent
-
-### Community 4 - "Vendor Intelligence"
-Cohesion: 0.40
-Nodes (5): Comparison Matrix, PPT Presentation, Vendor Comparison, Artifact Generation, Artifact Agent
-
-### Community 5 - "Comparison Engine"
-Cohesion: 0.40
-Nodes (5): Agent Layer, Hybrid Knowledge Architecture, Purchase Orchestrator, Procurement Controller, Purchase Intelligence Model
-
-### Community 6 - "Decision Support"
-Cohesion: 0.40
-Nodes (5): Entity & Fact Extraction, HITL Knowledge Acquisition, Knowledge Normalization, Knowledge Validation, Relationship Extraction
-
-### Community 7 - "Data & Artifacts"
-Cohesion: 0.40
-Nodes (5): Document Intelligence Agent, Evidence Agent, Intake Agent, Knowledge Builder Agent, Vendor Intelligence Agent
-
-### Community 8 - "Sprint 1 Delivery"
-Cohesion: 0.50
-Nodes (4): Commercial Normalization, Red Flag Knowledge, Etex Direct Comparison, Etex Indirect / IT Comparison
-
-### Community 9 - "Databricks Infrastructure"
-Cohesion: 0.67
-Nodes (3): Like-for-Like Comparison, Comparison Result States, Total Cost of Ownership
-
-### Community 10 - "Development & Governance"
-Cohesion: 0.67
-Nodes (3): AI Copilot, Dashboard, Purchase Decision Workspace
+Nodes (7): Antigravity, Claude Code, Cursor, Deep Agents Code, OpenCode, VS Code, Who Can Use It
 
 ## Knowledge Gaps
-- **25 isolated node(s):** `procure-ai`, `Direct Purchase`, `Indirect Purchase`, `PPT Presentation`, `AI Assistant` (+20 more)
+- **184 isolated node(s):** `Overview`, `✅ Production Code (Included)`, `❌ Excluded (NOT Deployed)`, `DAB Configuration Files`, `1. Bundle Structure` (+179 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **1 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Procure AI Workspace` connect `Procurement Domain Model` to `Vendor Intelligence`?**
-  _High betweenness centrality (0.087) - this node is a cross-community bridge._
-- **Why does `Vendor Comparison` connect `Vendor Intelligence` to `Procurement Domain Model`?**
-  _High betweenness centrality (0.087) - this node is a cross-community bridge._
-- **What connects `procure-ai`, `Direct Purchase`, `Indirect Purchase` to the rest of the system?**
-  _25 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `Databricks App Deployment Setup — Complete Reference` connect `Databricks App Deployment Setup — Complete Reference` to `4. Master Git Version Control Reference`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `Procure AI Workspace — Setup & Command Reference` connect `4. Master Git Version Control Reference` to `2.2 Package Management & Dependencies`?**
+  _High betweenness centrality (0.046) - this node is a cross-community bridge._
+- **Why does `LangChain MCP Setup Complete` connect `LangChain MCP Setup Complete` to `Who Can Use It`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **What connects `Overview`, `✅ Production Code (Included)`, `❌ Excluded (NOT Deployed)` to the rest of the system?**
+  _184 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `✅ Databricks App Deployment Setup — COMPLETE` be split into smaller, more focused modules?**
+  _Cohesion score 0.05714285714285714 - nodes in this community are weakly interconnected._
+- **Should `Databricks App Deployment Setup — Complete Reference` be split into smaller, more focused modules?**
+  _Cohesion score 0.06060606060606061 - nodes in this community are weakly interconnected._
+- **Should `LangChain MCP Setup Complete` be split into smaller, more focused modules?**
+  _Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected._

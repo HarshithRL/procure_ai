@@ -1,117 +1,47 @@
 {
-  ".design_docs/assistent/filter_detect.py": {
-    "mtime": 1787002194.0199294,
-    "ast_hash": "8dccbe96eb91b2259da26f8c2ffc0d18",
-    "semantic_hash": "8dccbe96eb91b2259da26f8c2ffc0d18"
+  "DATABRICKS_DEPLOYMENT_README.md": {
+    "mtime": 1787007493.8625302,
+    "ast_hash": "edb6839894c70544c4773ec750bf6ef4",
+    "semantic_hash": ""
   },
-  "pyproject.toml": {
-    "mtime": 1786999316.8504312,
-    "ast_hash": "471810bcf4ece326517f9455097df86a",
-    "semantic_hash": "471810bcf4ece326517f9455097df86a"
+  "DEPLOYMENT_CHECKLIST.md": {
+    "mtime": 1787007440.9653502,
+    "ast_hash": "da0c73a286409f12329e76ed051fc598",
+    "semantic_hash": ""
   },
-  ".design_docs/Knowledge/00 Usecase.md": {
-    "mtime": 1786990024.4726343,
-    "ast_hash": "c2787aef4e854ccc4dfc904c1a2233b2",
-    "semantic_hash": "c2787aef4e854ccc4dfc904c1a2233b2"
+  "DEPLOYMENT_COMPLETE.md": {
+    "mtime": 1787007556.632294,
+    "ast_hash": "31c3a8cdd86b759af8d5e60630ee4a2d",
+    "semantic_hash": ""
   },
-  ".design_docs/Knowledge/01 End-to-End Flow.md": {
-    "mtime": 1786989651.5967464,
-    "ast_hash": "d23810b3d2893feaa00f378ef36d70f8",
-    "semantic_hash": "d23810b3d2893feaa00f378ef36d70f8"
+  "handoffs/DEPLOYMENT_VERIFICATION.md": {
+    "mtime": 1787007424.7910178,
+    "ast_hash": "362f31564759618f6e16f9bfd0f773e9",
+    "semantic_hash": ""
   },
-  ".design_docs/Knowledge/02 Core Product Capability.md": {
-    "mtime": 1786989301.4646208,
-    "ast_hash": "eb676b6a735baee07fadc6f669e56225",
-    "semantic_hash": "eb676b6a735baee07fadc6f669e56225"
+  "handoffs/handoff_sprint1_deployment.md": {
+    "mtime": 1787007345.4043574,
+    "ast_hash": "e3e08c93e1fd5928359d096c54bedada",
+    "semantic_hash": ""
   },
-  ".design_docs/Knowledge/03 AI System Core Components.md": {
-    "mtime": 1786990523.358903,
-    "ast_hash": "93ce8f6d0404884bb7cc221afb4c0614",
-    "semantic_hash": "93ce8f6d0404884bb7cc221afb4c0614"
+  "opencode/LANGCHAIN_MCP_SETUP.md": {
+    "mtime": 1787003728.5123763,
+    "ast_hash": "7334f63398c7142f108cf29f88153b07",
+    "semantic_hash": ""
   },
-  ".design_docs/Knowledge/03.1 Domain Knowledge - Vendor Comparison.md": {
-    "mtime": 1786990661.382429,
-    "ast_hash": "8660b4ba61f4917bddd37b41d8a2463d",
-    "semantic_hash": "8660b4ba61f4917bddd37b41d8a2463d"
+  "opencode/PROJECT_STATUS.md": {
+    "mtime": 1787003499.1844223,
+    "ast_hash": "28092aba59cd7ceaaf62b3f6f585b05c",
+    "semantic_hash": ""
   },
-  ".design_docs/Knowledge/03.2 Domain Knowledge \u2014 Etex Vendor Comparison.md": {
-    "mtime": 1786990900.7955587,
-    "ast_hash": "6b6bb100997102251a5d94b299fb82fd",
-    "semantic_hash": "6b6bb100997102251a5d94b299fb82fd"
-  },
-  ".design_docs/Knowledge/04 Agent System Arch.md": {
-    "mtime": 1786993168.8607943,
-    "ast_hash": "df7b38d33e53990b432c9ab70d53ac6f",
-    "semantic_hash": "df7b38d33e53990b432c9ab70d53ac6f"
-  },
-  ".design_docs/Knowledge/05 Development journer.md": {
-    "mtime": 1786995506.3203454,
-    "ast_hash": "05104e3622e524ac42c6907a96b8d29f",
-    "semantic_hash": "05104e3622e524ac42c6907a96b8d29f"
-  },
-  ".design_docs/Knowledge/05.01 Flow Version 1.0v - design principle.md": {
-    "mtime": 1786994943.2625692,
-    "ast_hash": "73720a9e910c264caeb305813fbb13c9",
-    "semantic_hash": "73720a9e910c264caeb305813fbb13c9"
-  },
-  ".design_docs/Knowledge/05.02 Flow Version 1.0v - Page flow.md": {
-    "mtime": 1786995178.136198,
-    "ast_hash": "ee29756bac9b52462a63f688baa03a72",
-    "semantic_hash": "ee29756bac9b52462a63f688baa03a72"
-  },
-  ".design_docs/Knowledge/05.1 Application View.md": {
-    "mtime": 1786993552.2016518,
-    "ast_hash": "bf475d62fb9616530f1a53ac20c7e94f",
-    "semantic_hash": "bf475d62fb9616530f1a53ac20c7e94f"
-  },
-  ".design_docs/Knowledge/06.01 Sprint 1.md": {
-    "mtime": 1786997136.7331603,
-    "ast_hash": "01da32334d452301274c51564ac8bbbb",
-    "semantic_hash": "01da32334d452301274c51564ac8bbbb"
-  },
-  ".design_docs/Knowledge/Infra_and_auth_version/Git/My Git.md": {
-    "mtime": 1786999134.6913764,
-    "ast_hash": "65526909d20a94bc8ced6428423f7152",
-    "semantic_hash": "65526909d20a94bc8ced6428423f7152"
-  },
-  ".design_docs/Knowledge/Infra_and_auth_version/databricks/Workspace.md": {
-    "mtime": 1786999049.069049,
-    "ast_hash": "472ea7c7b4d0b376389a2610629f99db",
-    "semantic_hash": "472ea7c7b4d0b376389a2610629f99db"
-  },
-  ".design_docs/Knowledge/__Core index.md": {
-    "mtime": 1786993150.0586598,
-    "ast_hash": "b15c7848ced6ddf5f36b2d04e9c106a9",
-    "semantic_hash": "b15c7848ced6ddf5f36b2d04e9c106a9"
-  },
-  ".design_docs/Knowledge/__INDEX.md": {
-    "mtime": 1786989938.0275538,
-    "ast_hash": "2cc3bb113028e0745c9d6e77a6975da8",
-    "semantic_hash": "2cc3bb113028e0745c9d6e77a6975da8"
-  },
-  ".design_docs/Map.md": {
-    "mtime": 1786997491.153239,
-    "ast_hash": "8d0a0c5f960d08ddbafd82f396bc0963",
-    "semantic_hash": "8d0a0c5f960d08ddbafd82f396bc0963"
-  },
-  ".design_docs/assistent/setup_details.md": {
+  "setup_details.md": {
     "mtime": 1787000054.6661088,
     "ast_hash": "fc014cd6739455ae2565ef79fa2a9de2",
-    "semantic_hash": "fc014cd6739455ae2565ef79fa2a9de2"
+    "semantic_hash": ""
   },
-  "README.md": {
-    "mtime": 1786999883.147891,
-    "ast_hash": "fd65be0b09449be248e17d7aebed44d7",
-    "semantic_hash": "fd65be0b09449be248e17d7aebed44d7"
-  },
-  "note.md": {
-    "mtime": 1787001934.725395,
-    "ast_hash": "61de46a5cc8589dd27b0a7336ca5fc23",
-    "semantic_hash": "61de46a5cc8589dd27b0a7336ca5fc23"
-  },
-  "requirements.txt": {
-    "mtime": 1786999319.1813104,
-    "ast_hash": "8868a1d38d6bb648aa8a0317eea43ed8",
-    "semantic_hash": "8868a1d38d6bb648aa8a0317eea43ed8"
+  "tasks/task_sprint1_deployment.md": {
+    "mtime": 1787007271.1516778,
+    "ast_hash": "8401c60337f9875a437f5de413c8e637",
+    "semantic_hash": ""
   }
 }
