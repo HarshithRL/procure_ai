@@ -1,0 +1,2 @@
+# Procure AI Workspace dependencies
+# Managed via uv (uv pip compile pyproject.toml -o requirements.txt)

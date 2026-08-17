@@ -1,0 +1,11 @@
+[project]
+name = "procure-ai"
+version = "0.1.0"
+description = "AI-powered procurement workspace for transforming fragmented purchase information into traceable, evidence-backed vendor decisions."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
