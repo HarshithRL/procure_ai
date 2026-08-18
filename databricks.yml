@@ -31,10 +31,14 @@ sync:
     - .gitattributes
     
     # Documentation and config that shouldn't be deployed
+    #
+    # NOTE: do NOT add a blanket "*.md" exclude here. Agent prompts are shipped as
+    # markdown (agent_server/core/context/prompts/**/*.md) and are loaded at runtime;
+    # excluding them causes "Graph warm-up error: Prompt not found" and the agent
+    # falls back to an unprompted graph. Exclude specific docs instead.
     - .design_docs/
     - .opencode/
     - .graphifyignore
-    - "*.md"
     - AGENTS.md
     - README.md
     - note.md
