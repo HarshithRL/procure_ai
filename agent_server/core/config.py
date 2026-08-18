@@ -36,10 +36,17 @@ class EnvironmentConfig:
     )
 
     # Observability
+    # Tracking URI: on Databricks (DATABRICKS_HOST set) default to the managed
+    # tracking server; locally default to empty so tracing is skipped rather than
+    # blocking on a 127.0.0.1:5000 server that does not exist.
     mlflow_tracking_uri: str = field(
-        default_factory=lambda: os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+        default_factory=lambda: os.getenv("MLFLOW_TRACKING_URI")
+        or ("databricks" if os.getenv("DATABRICKS_HOST") else "")
     )
-    mlflow_experiment: str = field(default_factory=lambda: os.getenv("MLFLOW_EXPERIMENT", "Procure AI"))
+    # Databricks requires experiment names to be absolute workspace paths.
+    mlflow_experiment: str = field(
+        default_factory=lambda: os.getenv("MLFLOW_EXPERIMENT", "/Shared/procure_ai")
+    )
 
     # Logging
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))

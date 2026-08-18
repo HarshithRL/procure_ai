@@ -45,14 +45,19 @@ try:
 
     configure_root_logging()
 
-    # Default MLflow URI: if DATABRICKS_HOST is set, use databricks://.
+    # Default MLflow URI: if DATABRICKS_HOST is set, use the managed tracking server.
     # Otherwise, use explicit MLFLOW_TRACKING_URI or skip tracing.
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
     if not mlflow_uri and os.getenv("DATABRICKS_HOST"):
         mlflow_uri = "databricks"
-    
-    mlflow_exp = os.getenv("MLFLOW_EXPERIMENT", "procure_ai")
-    
+
+    mlflow_exp = os.getenv("MLFLOW_EXPERIMENT", "/Shared/procure_ai")
+
+    # Databricks requires experiment names to be absolute workspace paths
+    # (e.g. "/Shared/procure_ai"). A bare name raises INVALID_PARAMETER_VALUE.
+    if mlflow_uri and mlflow_uri.startswith("databricks") and not mlflow_exp.startswith("/"):
+        mlflow_exp = f"/Shared/{mlflow_exp}"
+
     if mlflow_uri:
         mlflow.set_tracking_uri(mlflow_uri)
         mlflow.set_experiment(mlflow_exp)

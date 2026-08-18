@@ -30,6 +30,14 @@ env:
   # Auto-populated when app is deployed to Databricks
   - name: DATABRICKS_HOST
     value: "https://adb-7181820732839861.1.azuredatabricks.net/"
+
+  # MLflow tracing (managed tracking server).
+  # Experiment name MUST be an absolute workspace path, otherwise Databricks
+  # rejects it with INVALID_PARAMETER_VALUE.
+  - name: MLFLOW_TRACKING_URI
+    value: "databricks"
+  - name: MLFLOW_EXPERIMENT
+    value: "/Shared/procure_ai"
   
   # DATABRICKS_APP_PORT is injected by Databricks Apps runtime (default 8000)
   # Do not override unless you have specific requirements
