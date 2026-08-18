@@ -69,6 +69,9 @@ class Project(Base):
     owner: Mapped[User | None] = relationship(
         back_populates="projects", foreign_keys=[owner_email]
     )
+    documents: Mapped[list["Document"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -88,4 +91,38 @@ class Project(Base):
             "updated_at": self.updated_at.isoformat() + "Z"
             if self.updated_at
             else None,
+        }
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id"), nullable=False
+    )
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_type: Mapped[str] = mapped_column(String(10), nullable=False)  # pdf, docx, xlsx
+    file_content: Mapped[bytes] = mapped_column(nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, processing, complete, error
+    error_message: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=_utcnow, onupdate=_utcnow
+    )
+
+    project: Mapped[Project] = relationship(
+        back_populates="documents", foreign_keys=[project_id]
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "filename": self.filename,
+            "file_type": self.file_type,
+            "status": self.status,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() + "Z" if self.updated_at else None,
         }

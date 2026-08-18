@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}New project — Procura AI{% endblock %}
+
+{% block content %}
+<div class="screen">
+    <div class="nav" style="height:52px;padding:0 24px;gap:12px;flex:none">
+        {% include "_nav_brand.html" %}
+        <a href="/">Projects</a>
+        <span class="app-faint" style="font-size:12px">/</span>
+        <span style="font-size:13px">New project</span>
+        <span class="nav-actions">
+            {% include "_theme_toggle.html" %}
+            {% include "_user_menu.html" %}
+            <a class="btn btn-ghost" style="font-size:12px;text-decoration:none" href="/">Cancel</a>
+        </span>
+    </div>
+    <div class="app-scroll" style="padding:40px 40px 60px;flex:1">
+        <div style="max-width:720px">
+            <h6 class="app-accent-text" style="margin:0 0 6px">Create a sourcing project</h6>
+            <h2 style="margin:0 0 8px">How would you like to start?</h2>
+            <p class="app-muted" style="font-size:14px;max-width:52ch;margin:0 0 28px">
+                Both paths end with a traceable knowledge graph built from your brief and vendor documents.
+            </p>
+        </div>
+        <div class="path-chooser">
+            <a class="path-card elev-sm" href="/projects/new/chat">
+                <span class="path-card-eyebrow app-accent-text">Option 1</span>
+                <h3 class="path-card-title">Chat with the procurement agent</h3>
+                <p class="path-card-body app-muted">
+                    Describe what you are buying in conversation. Upload vendor proposals as you go.
+                    The agent fills in the brief for you.
+                </p>
+                <span class="path-card-cta btn btn-primary" style="font-size:12px">Start chatting</span>
+            </a>
+            <a class="path-card elev-sm" href="/projects/new/form">
+                <span class="path-card-eyebrow app-accent-text">Option 2</span>
+                <h3 class="path-card-title">Fill the brief manually</h3>
+                <p class="path-card-body app-muted">
+                    Use the structured form to enter project details, weighted requirements,
+                    and upload vendor files — the current wizard.
+                </p>
+                <span class="path-card-cta btn btn-secondary" style="font-size:12px">Open form</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

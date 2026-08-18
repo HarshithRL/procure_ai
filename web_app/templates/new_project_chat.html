@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}New project — Chat — Procura AI{% endblock %}
+
+{% block content %}
+<div class="screen">
+    <div class="nav" style="height:52px;padding:0 24px;gap:12px;flex:none">
+        {% include "_nav_brand.html" %}
+        <a href="/">Projects</a>
+        <span class="app-faint" style="font-size:12px">/</span>
+        <a href="/projects/new" style="font-size:13px">New project</a>
+        <span class="app-faint" style="font-size:12px">/</span>
+        <span style="font-size:13px">Chat</span>
+        <span class="nav-actions">
+            {% include "_theme_toggle.html" %}
+            {% include "_user_menu.html" %}
+            <a class="btn btn-ghost" style="font-size:12px;text-decoration:none" href="/projects/new">Back</a>
+        </span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;flex:1;min-height:0">
+        <div class="app-div-r app-scroll" style="padding:24px 28px;display:flex;flex-direction:column;min-height:0">
+            <h6 class="app-accent-text" style="margin:0 0 6px">Option 1 · Conversation</h6>
+            <h3 style="margin:0 0 4px">Describe your sourcing need</h3>
+            <p class="app-muted" style="font-size:13px;max-width:44ch;margin:0 0 14px">
+                Tell the agent what you are buying, where, and what matters. It updates the brief on the right.
+            </p>
+            <div id="bc-messages" class="app-scroll" style="flex:1;min-height:0;padding:8px 0;display:flex;flex-direction:column;gap:12px"></div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <input id="bc-input" class="input" style="flex:1" placeholder="e.g. We need screw suppliers for six plants in France…" autocomplete="off">
+                <button id="bc-send" class="btn btn-primary" style="flex:none">Send</button>
+            </div>
+        </div>
+        <div class="app-scroll" style="padding:24px 28px;display:flex;flex-direction:column">
+            <h6 class="app-accent-text" style="margin:0 0 6px">Brief preview</h6>
+            <h3 style="margin:0 0 14px">Project definition</h3>
+            <div style="display:grid;gap:12px">
+                <div class="field"><label>Project name</label><input id="bc-name" class="input" placeholder="Project name"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="field"><label>Category</label><input id="bc-category" class="input" placeholder="Category"></div>
+                    <div class="field"><label>Region &amp; sites</label><input id="bc-region" class="input" placeholder="Region"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="field"><label>Target spend (3 yr, €)</label><input id="bc-spend" class="input app-num" type="number" min="0" step="1000"></div>
+                    <div class="field"><label>Award horizon</label><input id="bc-horizon" class="input" placeholder="Award horizon"></div>
+                </div>
+                <div class="field"><label>What we are buying</label><textarea id="bc-description" class="input" style="min-height:60px" placeholder="Purchase description"></textarea></div>
+            </div>
+            <hr class="hr">
+            <h6 style="margin:0 0 8px">Requirements</h6>
+            <div id="bc-req-list" class="app-muted" style="font-size:12.5px;margin-bottom:12px">No requirements yet</div>
+            <h6 style="margin:0 0 8px">Vendor proposals</h6>
+            <div id="bc-drop" class="app-drop" style="padding:18px;text-align:center;cursor:pointer;margin-bottom:12px">
+                <p style="margin:0 0 4px;font-size:14px">Drop PDF, DOCX or XLSX</p>
+                <p class="app-faint" style="margin:0;font-size:11px">or browse</p>
+                <input id="bc-file-input" type="file" accept=".pdf,.docx,.xlsx" multiple hidden>
+            </div>
+            <div id="bc-staged" style="flex:1;min-height:0"></div>
+            <hr class="hr">
+            <button id="bc-build" class="btn btn-primary btn-block">Build knowledge graph</button>
+            <p class="app-faint" style="font-size:11px;text-align:center;margin:8px 0 0">
+                <a href="/projects/new/form" style="color:inherit">Switch to manual form</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="np-dialog" class="dialog-backdrop hidden">
+        <div class="draggable-panel" style="width:560px" id="np-dialog-content">
+            <div class="draggable-header">
+                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+                    <div>
+                        <h6 id="np-ing-stage" class="app-accent-text" style="margin:0;font-size:13px">Parsing &amp; OCR</h6>
+                        <p class="dialog-title" style="margin:4px 0 0;font-size:13px">Building the knowledge graph</p>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-icon" id="np-dialog-close" style="width:24px;height:24px;flex:none" aria-label="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </button>
+            </div>
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:16px;gap:12px;overflow-y:auto">
+                <div class="app-bar"><i id="np-ing-bar" style="width:0%"></i></div>
+                <div class="app-num" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:11px">
+                    <span><span class="app-faint" style="display:block;font-size:10px">Nodes</span><span id="np-ing-nodes">0</span></span>
+                    <span><span class="app-faint" style="display:block;font-size:10px">Edges</span><span id="np-ing-edges">0</span></span>
+                    <span><span class="app-faint" style="display:block;font-size:10px">Documents</span><span id="np-ing-docs">0 / 0</span></span>
+                    <span><span class="app-faint" style="display:block;font-size:10px">Progress</span><span id="np-ing-pct">0%</span></span>
+                </div>
+                <div id="np-ing-log" class="app-num app-tint app-scroll" style="padding:10px 12px;font-size:10.5px;line-height:1.75;min-height:132px;max-height:180px;border-radius:var(--radius-sm)"></div>
+                <div style="display:flex;justify-content:flex-end;gap:8px">
+                    <button id="np-open-workspace" class="btn btn-primary hidden">Open workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/draggable.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kg_build.js') }}"></script>
+<script src="{{ url_for('static', filename='js/builder_chat.js') }}"></script>
+{% endblock %}

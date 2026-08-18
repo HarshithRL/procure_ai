@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}New project — Procura AI{% endblock %}
+
+{% block content %}
+<div class="screen">
+    <div class="nav" style="height:52px;padding:0 24px;gap:12px;flex:none">
+        {% include "_nav_brand.html" %}
+        <a href="/">Projects</a>
+        <span class="app-faint" style="font-size:12px">/</span>
+        <a href="/projects/new" style="font-size:13px">New project</a>
+        <span class="app-faint" style="font-size:12px">/</span>
+        <span style="font-size:13px">Form</span>
+        <span class="nav-actions">
+            {% include "_theme_toggle.html" %}
+            {% include "_user_menu.html" %}
+            <a class="btn btn-ghost" style="font-size:12px;text-decoration:none" href="/">Cancel</a>
+        </span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;flex:1;min-height:0">
+        <div class="app-div-r app-scroll" style="padding:30px 34px">
+            <h6 class="app-accent-text" style="margin:0 0 6px">Step 1 · The purchase</h6>
+            <h3 style="margin:0 0 4px">Describe what you are buying</h3>
+            <p class="app-muted" style="font-size:13px;max-width:44ch">The brief becomes the requirement side of the knowledge graph. Every vendor claim is scored against these lines.</p>
+            <div style="display:grid;gap:14px;margin-top:20px">
+                <div class="field"><label>Project name</label><input id="np-name" class="input" placeholder="e.g. France — screw &amp; fastener selection"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div class="field"><label>Category</label><input id="np-category" class="input" placeholder="e.g. Fasteners / mechanical fixings"></div>
+                    <div class="field"><label>Region &amp; sites</label><input id="np-region" class="input" placeholder="e.g. France · 6 plants"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div class="field"><label>Target spend (3 yr, €)</label><input id="np-spend" class="input app-num" type="number" min="0" step="1000" placeholder="e.g. 4200000"></div>
+                    <div class="field"><label>Award horizon</label><input id="np-horizon" class="input" placeholder="e.g. 36 months, 12-month price lock"></div>
+                </div>
+                <div class="field"><label>What we are buying</label><textarea id="np-description" class="input" style="min-height:70px" placeholder="Describe what you're sourcing, quantities, and key constraints…"></textarea></div>
+            </div>
+            <hr class="hr">
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+                <h6 style="margin:0">Requirements</h6>
+                <span id="np-req-hint" class="app-faint" style="font-size:11px;flex:1">Weighted lines every vendor claim is scored against</span>
+                <button id="np-add-req" class="btn btn-ghost" style="font-size:11px">Add line</button>
+            </div>
+            <div class="app-num" style="display:grid;grid-template-columns:66px 1fr 40px 24px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:0 0 6px;border-bottom:1px solid var(--color-divider);color:color-mix(in srgb, var(--color-text) 58%, transparent)">
+                <span>Ref</span><span>Requirement</span><span style="text-align:right">Wt</span><span></span>
+            </div>
+            <div id="np-req-rows"></div>
+        </div>
+        <div class="app-scroll" style="padding:30px 34px;display:flex;flex-direction:column">
+            <h6 class="app-accent-text" style="margin:0 0 6px">Step 2 · The offers</h6>
+            <h3 style="margin:0 0 4px">Upload vendor proposals</h3>
+            <p class="app-muted" style="font-size:13px;max-width:44ch">PDF, DOCX and XLSX. Price tables are read cell by cell so each figure keeps its sheet and cell reference.</p>
+            <div id="np-drop" class="app-drop" style="margin-top:18px;padding:26px;text-align:center;cursor:pointer">
+                <p style="margin:0 0 4px;font-family:var(--font-heading);font-size:17px">Drop files here</p>
+                <p class="app-faint" style="margin:0 0 12px;font-size:12px">or browse — 40 MB per file</p>
+                <button class="btn btn-secondary" style="font-size:12px" type="button">Browse files</button>
+                <input id="np-file-input" type="file" accept=".pdf,.docx,.xlsx" multiple hidden>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:10px;margin:20px 0 6px">
+                <h6 style="margin:0">Staged</h6>
+                <span id="np-staged-hint" class="app-faint" style="font-size:11px;flex:1">No files staged yet</span>
+            </div>
+            <div id="np-staged" style="flex:1;min-height:0"></div>
+            <hr class="hr">
+            <button id="np-build" class="btn btn-primary btn-block">Build knowledge graph</button>
+            <p class="app-faint" style="font-size:11px;text-align:center;margin:8px 0 0">Deterministic ingestion — parse, chunk, extract, resolve, link.</p>
+        </div>
+    </div>
+
+    <div id="np-dialog" class="dialog-backdrop hidden">
+        <div class="draggable-panel" style="width:560px" id="np-dialog-content">
+            <div class="draggable-header">
+                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+                    <div>
+                        <h6 id="np-ing-stage" class="app-accent-text" style="margin:0;font-size:13px">Parsing &amp; OCR</h6>
+                        <p class="dialog-title" style="margin:4px 0 0;font-size:13px">Building the knowledge graph</p>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-icon" id="np-dialog-close" style="width:24px;height:24px;flex:none" aria-label="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </button>
+            </div>
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:16px;gap:12px;overflow-y:auto">
+                <div class="app-bar"><i id="np-ing-bar" style="width:0%"></i></div>
+                <div class="app-num" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:11px">
+                    <span><span class="app-faint" style="display:block;font-size:10px">Nodes</span><span id="np-ing-nodes">0</span></span>
+                    <span><span class="app-faint" style="display:block;font-size:10px">Edges</span><span id="np-ing-edges">0</span></span>
+                    <span><span class="app-faint" style="display:block;font-size:10px">Documents</span><span id="np-ing-docs">0 / 0</span></span>
+                    <span><span class="app-faint" style="display:block;font-size:10px">Progress</span><span id="np-ing-pct">0%</span></span>
+                </div>
+                <div id="np-ing-log" class="app-num app-tint app-scroll" style="padding:10px 12px;font-size:10.5px;line-height:1.75;min-height:132px;max-height:180px;border-radius:var(--radius-sm)"></div>
+                <div style="display:flex;justify-content:flex-end;gap:8px">
+                    <button id="np-open-workspace" class="btn btn-primary hidden">Open workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/draggable.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kg_build.js') }}"></script>
+<script src="{{ url_for('static', filename='js/new_project.js') }}"></script>
+{% endblock %}

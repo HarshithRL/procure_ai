@@ -17,7 +17,7 @@ from flask import Blueprint, jsonify, redirect, request
 
 from ..auth import get_current_user, get_forwarded_access_token
 from ..database import get_session
-from ..models import Project, User
+from ..models import Project, User, Document
 from ..workspace_client import get_workspace_client_for_request
 
 logger = get_app_logger(__name__)
@@ -513,3 +513,257 @@ def create_chat_session():
     }
     logger.info("Created stub chat session: %s — '%s'", new_session["id"], title)
     return jsonify(new_session), 201
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Project Knowledge Graph API — Sprint 1 (document upload + ingestion)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_bp.route("/projects/<project_id>", methods=["GET"])
+def get_project(project_id: str):
+    """
+    Get a single project by ID.
+    
+    SECURITY: Hard tenant scope — only owner can access.
+    
+    Returns:
+        JSON project dict, or 404 if not found or not owned by current user
+    """
+    session = get_session()
+    current_user = get_current_user()
+    
+    if not current_user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    project = session.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_email == current_user.email.lower()
+    ).first()
+    
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    
+    return jsonify(project.to_dict())
+
+
+@api_bp.route("/projects", methods=["POST"])
+def create_project():
+    """
+    Create a new project.
+    
+    Request body: {"name": "...", "category": "...", "region": "..."}
+    Returns:
+        JSON project dict with 201 Created
+    """
+    session = get_session()
+    current_user = get_current_user()
+    
+    if not current_user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    
+    project = Project(
+        id=str(uuid.uuid4()),
+        name=name,
+        category=data.get("category"),
+        region=data.get("region"),
+        owner_email=current_user.email.lower(),
+    )
+    
+    session.add(project)
+    session.commit()
+    
+    logger.info(f"Created project {project.id} for {current_user.email}")
+    return jsonify(project.to_dict()), 201
+
+
+@api_bp.route("/projects/<project_id>/documents", methods=["GET"])
+def list_documents(project_id: str):
+    """
+    List all documents in a project.
+    
+    SECURITY: Hard tenant scope — only owner can access.
+    
+    Returns:
+        JSON array of document dicts
+    """
+    session = get_session()
+    current_user = get_current_user()
+    
+    if not current_user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Verify project ownership
+    project = session.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_email == current_user.email.lower()
+    ).first()
+    
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    
+    documents = session.query(Document).filter(
+        Document.project_id == project_id
+    ).order_by(Document.created_at.desc()).all()
+    
+    return jsonify([d.to_dict() for d in documents])
+
+
+@api_bp.route("/projects/<project_id>/documents", methods=["POST"])
+def upload_document(project_id: str):
+    """
+    Upload a document to a project and trigger async ingestion.
+    
+    Multipart form: file (PDF, DOCX, or XLSX)
+    
+    SECURITY: Hard tenant scope — only owner can upload.
+    
+    Returns:
+        JSON document dict with 201 Created
+    """
+    session = get_session()
+    current_user = get_current_user()
+    
+    if not current_user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Verify project ownership
+    project = session.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_email == current_user.email.lower()
+    ).first()
+    
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    
+    # Get file from multipart form
+    if "file" not in request.files:
+        return jsonify({"error": "file is required"}), 400
+    
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"error": "file is required"}), 400
+    
+    # Validate file extension
+    filename = file.filename.lower()
+    valid_extensions = {".pdf", ".docx", ".xlsx"}
+    file_ext = None
+    for ext in valid_extensions:
+        if filename.endswith(ext):
+            file_ext = ext[1:]  # Remove the dot
+            break
+    
+    if not file_ext:
+        return jsonify({"error": f"Unsupported file type. Allowed: {', '.join(valid_extensions)}"}), 400
+    
+    # Read file content
+    try:
+        file_content = file.read()
+        if not file_content:
+            return jsonify({"error": "File is empty"}), 400
+    except Exception as e:
+        logger.error(f"Failed to read file: {e}")
+        return jsonify({"error": "Failed to read file"}), 400
+    
+    # Create document record
+    document = Document(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        filename=file.filename,
+        file_type=file_ext,
+        file_content=file_content,
+        status="pending",
+    )
+    
+    session.add(document)
+    session.commit()
+    
+    # TODO: Trigger async ingestion via Celery or similar
+    # For now, just log and return
+    logger.info(f"Uploaded document {document.id} to project {project_id}")
+    
+    return jsonify(document.to_dict()), 201
+
+
+@api_bp.route("/projects/<project_id>/build/status", methods=["GET"])
+def build_status(project_id: str):
+    """
+    Get the current build status of a project (ingestion progress).
+    
+    SECURITY: Hard tenant scope — only owner can access.
+    
+    Returns:
+        JSON: {percent: 0-100, nodes: int, edges: int, complete: bool}
+    """
+    session = get_session()
+    current_user = get_current_user()
+    
+    if not current_user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Verify project ownership
+    project = session.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_email == current_user.email.lower()
+    ).first()
+    
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    
+    # Calculate progress from documents
+    documents = session.query(Document).filter(
+        Document.project_id == project_id
+    ).all()
+    
+    total_docs = len(documents)
+    complete_docs = len([d for d in documents if d.status == "complete"])
+    error_docs = len([d for d in documents if d.status == "error"])
+    
+    percent = int((complete_docs / total_docs * 100)) if total_docs > 0 else 0
+    
+    return jsonify({
+        "percent": percent,
+        "nodes": project.node_count,
+        "edges": project.edge_count,
+        "complete": complete_docs == total_docs and total_docs > 0,
+        "total_documents": total_docs,
+        "complete_documents": complete_docs,
+        "error_documents": error_docs,
+    })
+
+
+@api_bp.route("/projects/<project_id>/build", methods=["POST"])
+def finalize_build(project_id: str):
+    """
+    Finalize the project build (trigger final graph assembly).
+    
+    SECURITY: Hard tenant scope — only owner can finalize.
+    
+    Returns:
+        JSON: {status: "building" | "complete" | "error"}
+    """
+    session = get_session()
+    current_user = get_current_user()
+    
+    if not current_user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Verify project ownership
+    project = session.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_email == current_user.email.lower()
+    ).first()
+    
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    
+    # TODO: Trigger project build graph (Sprint 2)
+    # For now, just return a stub response
+    logger.info(f"Finalized build for project {project_id}")
+    
+    return jsonify({"status": "building"}), 202

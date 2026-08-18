@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Workspace — Procura AI{% endblock %}
+
+{% block content %}
+<div class="screen workspace" data-project-id="{{ project_id }}" style="position:relative">
+    <div class="nav" style="height:52px;padding:0 20px;gap:12px;flex:none">
+        {% include "_nav_brand.html" %}
+        <a href="/">Projects</a>
+        <span class="app-faint" style="font-size:12px">/</span>
+        <span id="ws-project-name" style="font-size:13px">Loading…</span>
+        <span id="ws-project-code" class="tag tag-neutral app-num hidden"></span>
+        <span class="nav-actions">
+            {% include "_theme_toggle.html" %}
+            {% include "_user_menu.html" %}
+            <button id="ws-export-btn" class="btn btn-primary" style="font-size:12px">Export workbook</button>
+        </span>
+    </div>
+
+    <div id="panel-row" class="panel-row">
+
+        <div id="panel-sources" class="panel-col app-div-r" style="display:flex;flex-direction:column;min-height:0">
+            <div class="app-div-b" style="display:flex;align-items:center;gap:6px;padding:13px 14px 11px">
+                <h6 style="margin:0;flex:1">Workspace</h6>
+            </div>
+            <div class="sidebar-layout">
+                <nav class="sidebar-nav" id="sidebar-nav">
+                    <span class="sidebar-nav-label app-faint">SECTIONS</span>
+                    <button data-tab="files" class="sidebar-nav-btn is-active">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        Files
+                    </button>
+                    <button data-tab="reqs" class="sidebar-nav-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+                        Requirements
+                    </button>
+                    <button data-tab="vendors" class="sidebar-nav-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18"/><path d="M3 7v14"/><path d="M21 7v14"/><path d="M3 7l9-5 9 5"/><path d="M7 11h2v3H7z"/><path d="M15 11h2v3h-2z"/></svg>
+                        Vendors
+                    </button>
+                    <button data-tab="saved" class="sidebar-nav-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Saved views
+                    </button>
+                    <button data-tab="history" class="sidebar-nav-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        History
+                    </button>
+                </nav>
+                <div class="sidebar-content">
+                    <div id="sidebar-pane-files" class="sidebar-pane is-active">
+                        <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--color-divider)">
+                            <input id="sources-select-all" type="checkbox" class="app-check" checked>
+                            <span id="sources-select-count" class="app-muted" style="font-size:11px">grounding the assistant</span>
+                        </label>
+                        <div id="sources-list" class="app-scroll" style="flex:1;min-height:0;padding-bottom:6px"></div>
+                        <p id="upload-status" class="app-faint" style="font-size:10.5px;margin:0;padding:0 12px"></p>
+                    </div>
+                    <div id="sidebar-pane-reqs" class="sidebar-pane">
+                        <div id="reqs-content" class="sidebar-pane-scroll"></div>
+                    </div>
+                    <div id="sidebar-pane-vendors" class="sidebar-pane">
+                        <div id="vendors-content" class="sidebar-pane-scroll"></div>
+                    </div>
+                    <div id="sidebar-pane-saved" class="sidebar-pane">
+                        <div id="saved-content" class="sidebar-pane-scroll"></div>
+                    </div>
+                    <div id="sidebar-pane-history" class="sidebar-pane">
+                        <div id="history-content" class="sidebar-pane-scroll"></div>
+                    </div>
+                </div>
+            </div>
+             <div class="app-div-t" style="padding:10px 14px">
+                 <button id="sources-add-btn" class="btn btn-secondary btn-block" style="font-size:12px;margin:0">Add sources</button>
+                 <input id="upload-input" type="file" accept=".pdf,.docx,.xlsx" multiple hidden>
+             </div>
+
+             <div class="preview-shell" data-preview-shell hidden>
+                 <div class="preview-header app-div-b">
+                     <button class="btn btn-ghost preview-back" aria-label="Back to Files">
+                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 19l-7-7 7-7"></path></svg>
+                         Back to Files
+                     </button>
+                     <span class="preview-title" data-preview-title></span>
+                     <span class="preview-kind tag tag-outline" data-preview-kind></span>
+                 </div>
+                 <div class="preview-body" data-preview-body>
+                     <!-- renderer mounts here -->
+                 </div>
+                 <div class="preview-tabs app-div-t" data-preview-tabs hidden>
+                     <!-- sheet tabs for Excel; hidden for pptx -->
+                 </div>
+             </div>
+         </div>
+
+        <div id="resizer-left" class="panel-resizer"
+             role="separator" aria-orientation="vertical"
+             aria-label="Resize Sources panel"
+             title="Drag to resize · Double-click to collapse"></div>
+
+        <div id="panel-chat" class="panel-col" style="display:flex;flex-direction:column;min-height:0">
+            <div id="kpi-strip" class="app-div-b" style="display:flex">
+                <div class="app-div-r" style="flex:1;padding:11px 16px">
+                    <span class="app-faint" style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase">Weighted coverage</span>
+                    <div id="kpi-coverage" class="app-num" style="font-family:var(--font-heading);font-size:22px;line-height:1.1">—</div>
+                    <div class="app-bar" style="margin-top:5px"><i id="kpi-coverage-bar" style="width:0%"></i></div>
+                </div>
+                <div class="app-div-r" style="flex:1;padding:11px 16px">
+                    <span class="app-faint" style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase">TCO spread</span>
+                    <div id="kpi-tco" class="app-num" style="font-family:var(--font-heading);font-size:22px;line-height:1.1">—</div>
+                    <div id="kpi-tco-range" class="app-faint app-num" style="font-size:10.5px;margin-top:6px"></div>
+                </div>
+                <div class="app-div-r" style="flex:1;padding:11px 16px">
+                    <span class="app-faint" style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase">Evidence linked</span>
+                    <div id="kpi-evidence" class="app-num" style="font-family:var(--font-heading);font-size:22px;line-height:1.1">—</div>
+                    <div id="kpi-evidence-detail" class="app-faint app-num" style="font-size:10.5px;margin-top:6px"></div>
+                </div>
+                <div style="flex:1;padding:11px 16px">
+                    <span class="app-faint" style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase">Contradictions</span>
+                    <div id="kpi-contradictions" class="app-num app-accent-text" style="font-family:var(--font-heading);font-size:22px;line-height:1.1">—</div>
+                    <div class="app-faint app-num" style="font-size:10.5px;margin-top:6px">flagged for review</div>
+                </div>
+            </div>
+
+            <div id="chat-messages" class="app-scroll" style="flex:1;min-height:0;padding:24px 30px 8px"></div>
+
+            <div style="padding:0 30px 16px">
+                <div id="chat-suggestions" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+                <form id="chat-form" style="display:flex;align-items:flex-end;gap:8px;margin:0">
+                    <input id="chat-input" class="input" autocomplete="off" style="flex:1" placeholder="Ask a decision question — coverage, TCO, terms, risk…">
+                    <button type="submit" class="btn btn-primary" style="height:36px" aria-label="Send">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+                    </button>
+                </form>
+                <div class="app-faint app-num" style="font-size:10px;margin-top:7px;display:flex;gap:12px">
+                    <span>query_knowledge_graph</span><span>search_evidence</span><span>compare_vendors</span><span>generate_excel</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="resizer-right" class="panel-resizer"
+             role="separator" aria-orientation="vertical"
+             aria-label="Resize Studio panel"
+             title="Drag to resize · Double-click to reset"></div>
+
+        <div id="panel-studio" class="panel-col app-div-l" style="display:flex;flex-direction:column;min-height:0">
+            <div class="app-div-b" style="display:flex;align-items:center;gap:10px;padding:13px 14px 11px">
+                <h6 style="margin:0;flex:1">Studio</h6>
+                <span id="studio-graph-health" class="tag tag-neutral hidden" style="font-size:9px;padding:0 5px" title="Graph health issues"></span>
+                <button id="studio-maintain-btn" class="btn btn-secondary" style="font-size:10.5px;padding:2px 8px;height:26px">Maintain graph</button>
+                <span id="studio-graph-count" class="app-faint app-num" style="font-size:10px"></span>
+            </div>
+            <div class="app-div-b" style="padding:9px 14px">
+                <span class="seg" style="font-size:11px">
+                    <label class="seg-opt"><input type="radio" name="studio-tab" value="graph" checked>Graph</label>
+                    <label class="seg-opt"><input type="radio" name="studio-tab" value="rank">Ranking</label>
+                    <label class="seg-opt"><input type="radio" name="studio-tab" value="tco">TCO</label>
+                    <label class="seg-opt"><input type="radio" name="studio-tab" value="work">Workbook</label>
+                </span>
+            </div>
+            <div class="app-scroll" style="flex:1;min-height:0;padding:14px">
+                <div id="studio-pane-graph"></div>
+                <div id="studio-pane-rank" class="hidden"></div>
+                <div id="studio-pane-tco" class="hidden"></div>
+                <div id="studio-pane-work" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <aside id="evidence-panel" class="hidden" style="position:absolute;left:var(--panel-sources-w,268px);top:52px;bottom:0;width:470px;background:var(--color-bg);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;z-index:120">
+        <div class="app-div-b" style="display:flex;align-items:center;gap:8px;padding:13px 16px">
+            <h6 id="evidence-title" style="margin:0;flex:1">Evidence</h6>
+            <button id="evidence-close" class="btn btn-ghost btn-icon" style="width:24px;height:24px" aria-label="Close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            </button>
+        </div>
+        <div id="evidence-body" class="app-scroll" style="flex:1;min-height:0;padding:16px"></div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/force-graph.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/xlsx.full.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panels/evidence.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panels/graph_explorer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panels/preview.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panels/sources.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panels/chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panels/studio.js') }}"></script>
+<script src="{{ url_for('static', filename='js/resizer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
