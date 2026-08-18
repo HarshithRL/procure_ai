@@ -34,12 +34,15 @@ dependencies = [
     "langchain-openai>=0.3.0",
     "langchain-community>=0.3.0",
     "langchain-text-splitters>=0.3.0",
-    # Vector Database
+    # Vector Database & Embeddings
     "faiss-cpu>=1.8.0",
-    # Document Parsing
+    "sentence-transformers>=3.0.0",
+    # Document Parsing & Imaging
     "pymupdf>=1.24.0",
     "python-docx>=1.1.0",
     "openpyxl>=3.1.0",
+    "pillow>=10.0.0",  # Image processing for logos
+    "requests>=2.31.0",  # For fetching remote logos
     # Database & ORM
     "sqlalchemy>=2.0.52",
     "psycopg[binary]>=3.1",
