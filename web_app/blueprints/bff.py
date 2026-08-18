@@ -228,6 +228,48 @@ def get_identity() -> dict[str, Any]:
         return {"error": str(e), "status": 500}
 
 
+@bff_bp.route("/model-catalog", methods=["GET"])
+def get_model_catalog() -> dict[str, Any]:
+    """GET /bff/model-catalog → expose model/profile catalog for the UI model picker.
+    
+    Returns the combined profile + model + effort metadata from shared_library.model_factory.catalog.
+    The model picker uses this to populate the searchable list.
+    
+    Query params:
+    - surface: "chat" (default) | "power_user" | "all" — filter models by surface.
+    
+    Response shape (from catalog.py:240-260):
+    {
+      "schema_version": 3,
+      "surface": "chat",
+      "defaults": { "profile": "fast_chat", "effort": "low", "fast": false },
+      "effort_map": { "low": "fast_chat", "medium": "balanced", "high": "deep_reasoning" },
+      "fast_profile": "fast_chat",
+      "profiles": [
+        { "id": "fast_chat", "label": "Fast", "description": "...", "effort": "low", ... },
+        ...
+      ],
+      "models": [
+        { "id": "system.ai.claude-haiku...", "label": "...", "short_name": "...", 
+          "badges": [...], "swap_safe_for_agent": true, ... },
+        ...
+      ]
+    }
+    """
+    try:
+        from shared_library.model_factory.catalog import get_model_catalog
+        
+        surface = request.args.get("surface", "chat")
+        catalog = get_model_catalog(surface=surface)
+        return catalog
+    except Exception as e:
+        logger.exception(f"get_model_catalog | error={type(e).__name__}")
+        return {
+            "error": str(e),
+            "status": 500,
+        }
+
+
 @bff_bp.route("/health", methods=["GET"])
 def health() -> dict[str, Any]:
     """GET /bff/health → agent_server /health.

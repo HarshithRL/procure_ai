@@ -6,6 +6,7 @@ See: https://flask.palletsprojects.com/en/3.0.x/config/
 """
 
 import os
+from pathlib import Path
 
 
 class DevelopmentConfig:
@@ -20,7 +21,8 @@ class DevelopmentConfig:
     # as soon as get_current_user() runs.
     #
     # Override with the DATABASE_URL env var if needed.
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///procure_ai.db")
+    _db_path = Path(__file__).parent.parent / "procure_ai.db"
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", f"sqlite:///{_db_path}")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session cookie security (per auth.md: HttpOnly, SameSite=Lax)

@@ -39,17 +39,18 @@ async def brain_node(state: AgentState, config: Any = None) -> dict[str, Any]:
     binds one hardcoded model for the process lifetime and silently ignores the
     user's model selection.
 
-    Astream_events propagation: we call `astream()` on the inner agent rather
-    than `ainvoke()`, so token-level `on_chat_model_stream` events still bubble
-    up to the SSE endpoint.
+    Astream_events propagation: we call `astream_events()` on the inner agent 
+    with version="v2", so token-level `on_chat_model_stream` events bubble up 
+    to the SSE endpoint and are relayed to the UI in real time.
     """
     profile = normalize_profile(state.get("profile"))
+    model_id = state.get("model")  # Optional model override from user
     thread_id = state.get("thread_id", "unknown")
     
     with graph_turn(thread_id=thread_id, node="brain_node"):
-        logger.info(f"brain | profile={profile}")
+        logger.info(f"brain | profile={profile} | model_id={model_id or '(default)'}")
         try:
-            brain = get_brain(profile=profile)
+            brain = get_brain(profile=profile, model_id=model_id)
 
             inner_config = {
                 "configurable": {
@@ -58,13 +59,27 @@ async def brain_node(state: AgentState, config: Any = None) -> dict[str, Any]:
                 }
             }
 
-            result = await brain.ainvoke(
+            # Use astream_events v2 to capture token-level on_chat_model_stream.
+            # Collect the final messages from the stream.
+            final_messages = state.get("messages", [])
+            async for event in brain.astream_events(
                 {"messages": state.get("messages", [])},
                 config=inner_config,
-            )
-            messages = result.get("messages", [])
-            logger.info(f"brain | complete | message_count={len(messages)}")
-            return {"messages": messages}
+                version="v2",
+            ):
+                # Relay events upstream through the outer graph's SSE handler.
+                # The outer graph (start_server.py) will serialize and yield them.
+                # We just forward the final messages after the stream completes.
+                if event.get("event") == "on_chat_model_end":
+                    # Extract the assistant message from the end event
+                    msg = event.get("data", {}).get("output", {}).get("content")
+                    if msg:
+                        from langchain_core.messages import AIMessage
+                        final_messages = list(state.get("messages", [])) + [AIMessage(content=msg)]
+            
+            message_count = len(final_messages)
+            logger.info(f"brain | complete | message_count={message_count}")
+            return {"messages": final_messages}
         except Exception as exc:
             logger.exception(f"brain | failed | {exc}")
             from langchain_core.messages import AIMessage

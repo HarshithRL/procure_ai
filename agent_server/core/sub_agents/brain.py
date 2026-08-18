@@ -61,14 +61,18 @@ class BrainAgentState(TypedDict):
 def build_brain_agent(
     model: Optional[BaseChatModel] = None,
     profile: Optional[str] = None,
+    model_id: Optional[str] = None,
 ) -> Any:
     """Build and compile the Brain agent using LangChain create_agent.
 
     Args:
-        model: Explicit chat model. If given, `profile` is ignored.
+        model: Explicit chat model object. If given, `profile` and `model_id` are ignored.
         profile: model_factory profile name (fast_chat | balanced |
                  deep_reasoning). Defaults to DEFAULT_PROFILE. This is what the
                  chat UI's model picker selects.
+        model_id: Optional model override ID (e.g., "system.ai.claude-opus-4-7").
+                 If provided, resolves to that specific model instead of the 
+                 profile default.
                  If Databricks auth unavailable, falls back to MockChatModel.
 
     Returns:
@@ -78,10 +82,12 @@ def build_brain_agent(
 
     if model is None:
         try:
-            model = resolve_chat_model(profile=resolved_profile)
+            # If model_id is specified, use it as the override; else resolve by profile
+            model = resolve_chat_model(profile=resolved_profile, model=model_id)
             logger.info(
-                "Brain agent resolved model via model_factory (profile=%s)",
+                "Brain agent resolved model via model_factory (profile=%s, model_id=%s)",
                 resolved_profile,
+                model_id or "(default)",
             )
         except (AuthError, AuthBridgeError, ValueError) as exc:
             # Databricks auth unavailable. In local dev, this is expected without credentials.
@@ -149,15 +155,18 @@ _brain_instances: dict[str, Any] = {}
 _brain_errors: dict[str, tuple[float, Exception]] = {}
 
 
-def get_brain(profile: Optional[str] = None, force_new: bool = False) -> Any:
-    """Get or create the brain agent for a given model profile.
+def get_brain(profile: Optional[str] = None, model_id: Optional[str] = None, force_new: bool = False) -> Any:
+    """Get or create the brain agent for a given model profile and optional override.
 
     On construction failure, memoizes the error for 30 seconds *for that
-    profile only*, so repeated calls re-raise immediately rather than
+    profile+model_id key only*, so repeated calls re-raise immediately rather than
     hammering Databricks auth — while a healthy profile stays usable.
 
     Args:
         profile: model_factory profile name. Defaults to DEFAULT_PROFILE.
+        model_id: Optional model override (e.g., "system.ai.claude-opus-4-7").
+                 If provided, the cache key includes it so a different override
+                 is built as a fresh instance.
         force_new: Ignore the cache; build a fresh instance.
 
     Returns:
@@ -166,30 +175,32 @@ def get_brain(profile: Optional[str] = None, force_new: bool = False) -> Any:
     import time
 
     resolved_profile = normalize_profile(profile)
+    # Include model_id in cache key so different overrides don't share instances
+    cache_key = (resolved_profile, model_id or "")
 
     if force_new:
-        return build_brain_agent(profile=resolved_profile)
+        return build_brain_agent(profile=resolved_profile, model_id=model_id)
 
-    cached = _brain_instances.get(resolved_profile)
+    cached = _brain_instances.get(cache_key)
     if cached is not None:
         return cached
 
-    # If we recently failed for this profile, re-raise within cooldown
-    failure = _brain_errors.get(resolved_profile)
+    # If we recently failed for this profile+model_id, re-raise within cooldown
+    failure = _brain_errors.get(cache_key)
     if failure is not None:
         error_time, error = failure
         if time.time() - error_time < 30.0:
             raise error
         # Cooldown expired; forget and try again
-        _brain_errors.pop(resolved_profile, None)
+        _brain_errors.pop(cache_key, None)
 
     try:
-        instance = build_brain_agent(profile=resolved_profile)
-        _brain_instances[resolved_profile] = instance
+        instance = build_brain_agent(profile=resolved_profile, model_id=model_id)
+        _brain_instances[cache_key] = instance
         return instance
     except Exception as e:
-        # Memoize failure with timestamp, scoped to this profile
-        _brain_errors[resolved_profile] = (time.time(), e)
+        # Memoize failure with timestamp, scoped to this profile+model_id
+        _brain_errors[cache_key] = (time.time(), e)
         raise
 
 
