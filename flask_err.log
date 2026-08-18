@@ -1,0 +1,5 @@
+[2026-08-18 03:55:16,275] INFO in __init__: Database seeded with synthetic data
+[2026-08-18 03:55:16,276] INFO in __init__: Procure AI app ready (config=development)
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit

@@ -1,0 +1,21 @@
+# Exclude noise directories from graphify scans
+# Per AGENTS.md: do not scan .obsidian (6.8MB minified vendor JS)
+.design_docs/.obsidian/
+# Node modules and virtual env
+.opencode/node_modules/
+.venv/
+# Git internals
+.git/
+# Graphify's own output (avoid self-referencing)
+graphify-out/
+.design_docs/assistent/graphify-out/
+# Python cache
+__pycache__/
+*.pyc
+# Build artifacts
+*.egg-info/
+dist/
+build/
+# SQLite databases
+*.db
+*.db-journal

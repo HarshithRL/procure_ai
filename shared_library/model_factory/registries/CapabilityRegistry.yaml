@@ -1,0 +1,307 @@
+version: 1.0.0
+registry_type: CapabilityRegistry
+description: >
+  Per-model feature matrix + transport/family policies for swap-safe routing.
+  vocabulary: controlled capability ids referenced by ModelRegistry / profiles.
+
+vocabulary:
+  text_input: { group: modality, enforcement: hard }
+  text_output: { group: modality, enforcement: hard }
+  image_input: { group: modality, enforcement: hard }
+  tool_calling: { group: agentic, enforcement: hard }
+  parallel_tool_calls: { group: agentic, enforcement: degrade }
+  structured_output: { group: output_contract, enforcement: degrade }
+  extended_thinking: { group: reasoning, enforcement: degrade }
+  reasoning_effort: { group: reasoning, enforcement: degrade }
+  forced_reasoning: { group: reasoning, enforcement: advisory }
+  streaming: { group: inference, enforcement: degrade }
+  very_long_context: { group: efficiency, enforcement: advisory }
+
+# Shared family transport policies (referenced by model entries via family key)
+family_defaults:
+  claude:
+    transport:
+      api_style: openai_chat_completions
+      content_shape: openai_multimodal
+    request_param_policy:
+      allow: [max_tokens, temperature, max_retries, timeout, stream, tools, tool_choice]
+      strip_when_unsupported: [temperature]
+    tool_policy:
+      multiturn: recommended
+      parallel_tool_calls: false
+      max_tools: 32
+    response_policy:
+      content_blocks: reasoning_and_text
+      strip_reasoning_on_checkpoint: true
+    reasoning_extra_body: thinking
+  gpt_oss:
+    transport:
+      api_style: openai_chat_completions
+      content_shape: text_string
+    request_param_policy:
+      allow: [max_tokens, temperature, max_retries, timeout, stream, tools, tool_choice]
+      strip_when_unsupported: []
+    tool_policy:
+      multiturn: preview
+      parallel_tool_calls: false
+      max_tools: 32
+    response_policy:
+      content_blocks: text_only
+      strip_reasoning_on_checkpoint: true
+    reasoning_extra_body: reasoning_effort
+  llama:
+    transport:
+      api_style: openai_chat_completions
+      content_shape: text_string
+    request_param_policy:
+      allow: [max_tokens, temperature, max_retries, timeout, stream, tools, tool_choice]
+      strip_when_unsupported: []
+    tool_policy:
+      multiturn: preview
+      parallel_tool_calls: false
+      max_tools: 32
+    response_policy:
+      content_blocks: text_only
+      strip_reasoning_on_checkpoint: true
+    reasoning_extra_body: none
+  qwen:
+    transport:
+      api_style: openai_chat_completions
+      content_shape: text_string
+    request_param_policy:
+      allow: [max_tokens, temperature, max_retries, timeout, stream, tools, tool_choice]
+      strip_when_unsupported: []
+    tool_policy:
+      multiturn: preview
+      parallel_tool_calls: false
+      max_tools: 32
+    response_policy:
+      content_blocks: reasoning_and_text
+      strip_reasoning_on_checkpoint: true
+    reasoning_extra_body: none
+  gemma:
+    transport:
+      api_style: openai_chat_completions
+      content_shape: text_string
+    request_param_policy:
+      allow: [max_tokens, temperature, max_retries, timeout, stream, tools, tool_choice]
+      strip_when_unsupported: []
+    tool_policy:
+      multiturn: unsupported
+      parallel_tool_calls: false
+      max_tools: 32
+    response_policy:
+      content_blocks: text_only
+      strip_reasoning_on_checkpoint: true
+    reasoning_extra_body: none
+  embedding:
+    transport:
+      api_style: openai_embeddings
+      content_shape: text_string
+    request_param_policy:
+      allow: []
+      strip_when_unsupported: [temperature]
+    tool_policy:
+      multiturn: unsupported
+      parallel_tool_calls: false
+      max_tools: 0
+    response_policy:
+      content_blocks: text_only
+      strip_reasoning_on_checkpoint: false
+    reasoning_extra_body: none
+
+_claude_constraints: &claude_constraints
+  requires_trailing_user_message: true
+  disallow_assistant_prefill: true
+  merge_system_messages: true
+
+_claude_features: &claude_features
+  tool_calling:
+    supported: true
+    strict_schema_adherence: true
+  structured_outputs:
+    supported: true
+    accepted_types: [json_schema]
+  parallel_tool_calls: false
+  reasoning_effort_control: false
+  prompt_caching:
+    supported: true
+    mechanism: cache_control
+
+_oss_features: &oss_features
+  tool_calling:
+    supported: true
+    strict_schema_adherence: false
+  structured_outputs:
+    supported: true
+    accepted_types: [json_schema]
+  parallel_tool_calls: false
+  reasoning_effort_control: true
+  prompt_caching:
+    supported: false
+
+_llama_features: &llama_features
+  tool_calling:
+    supported: true
+    strict_schema_adherence: false
+  structured_outputs:
+    supported: false
+  parallel_tool_calls: false
+  reasoning_effort_control: false
+  prompt_caching:
+    supported: false
+
+_light_constraints: &light_constraints
+  requires_trailing_user_message: false
+  disallow_assistant_prefill: false
+  merge_system_messages: true
+
+capabilities:
+  system.ai.claude-haiku-4-5:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+    message_constraints: *claude_constraints
+
+  system.ai.claude-sonnet-4-6:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+    message_constraints: *claude_constraints
+
+  system.ai.claude-sonnet-4-5:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+    message_constraints: *claude_constraints
+
+  system.ai.claude-opus-4-7:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+      reasoning_effort_control: false
+      extended_thinking: true
+    message_constraints: *claude_constraints
+
+  system.ai.claude-opus-4-8:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+      extended_thinking: true
+    message_constraints: *claude_constraints
+
+  system.ai.claude-opus-4-6:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+      extended_thinking: true
+    message_constraints: *claude_constraints
+
+  system.ai.claude-opus-4-5:
+    family: claude
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *claude_features
+      extended_thinking: true
+    message_constraints: *claude_constraints
+
+  system.ai.gpt-oss-120b:
+    family: gpt_oss
+    task_type: llm/v1/chat
+    supported_inputs: [text]
+    features:
+      <<: *oss_features
+    message_constraints: *light_constraints
+
+  system.ai.gpt-oss-20b:
+    family: gpt_oss
+    task_type: llm/v1/chat
+    supported_inputs: [text]
+    features:
+      <<: *oss_features
+    message_constraints: *light_constraints
+
+  system.ai.qwen35-122b-a10b:
+    family: qwen
+    task_type: llm/v1/chat
+    supported_inputs: [text]
+    features:
+      tool_calling:
+        supported: true
+        strict_schema_adherence: false
+      structured_outputs:
+        supported: true
+        accepted_types: [json_schema]
+      parallel_tool_calls: false
+      reasoning_effort_control: false
+      forced_reasoning: true
+      prompt_caching:
+        supported: false
+    message_constraints: *light_constraints
+
+  system.ai.llama-4-maverick:
+    family: llama
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      <<: *llama_features
+    message_constraints: *light_constraints
+
+  system.ai.meta-llama-3-3-70b-instruct:
+    family: llama
+    task_type: llm/v1/chat
+    supported_inputs: [text]
+    features:
+      <<: *llama_features
+    message_constraints: *light_constraints
+
+  system.ai.meta-llama-3-1-8b-instruct:
+    family: llama
+    task_type: llm/v1/chat
+    supported_inputs: [text]
+    features:
+      <<: *llama_features
+    message_constraints: *light_constraints
+
+  system.ai.gemma-3-12b:
+    family: gemma
+    task_type: llm/v1/chat
+    supported_inputs: [text, image]
+    features:
+      tool_calling:
+        supported: false
+      structured_outputs:
+        supported: true
+        accepted_types: [json_object]
+      parallel_tool_calls: false
+      reasoning_effort_control: false
+      prompt_caching:
+        supported: false
+    message_constraints: *light_constraints
+
+  system.ai.gte-large-en:
+    family: embedding
+    task_type: llm/v1/embeddings
+    supported_inputs: [text]
+    features: {}
+    message_constraints: *light_constraints
+
+  system.ai.qwen3-embedding-0-6b:
+    family: embedding
+    task_type: llm/v1/embeddings
+    supported_inputs: [text]
+    features: {}
+    message_constraints: *light_constraints

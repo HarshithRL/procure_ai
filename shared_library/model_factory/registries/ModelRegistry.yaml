@@ -1,0 +1,308 @@
+version: 1.0.0
+registry_type: ModelRegistry
+description: >
+  Unity AI Gateway system.ai model services with dual identity
+  (physical_model system.ai.* + endpoint databricks-*).
+
+models:
+  # ---- Claude frontier / workhorse / fast ----
+  system.ai.claude-opus-4-7:
+    display_name: Anthropic Claude Opus 4.7
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-opus-4-7
+    endpoint: databricks-claude-opus-4-7
+    family: claude
+    tier: frontier
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: false
+    reasoning_mode: thinking
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
+    default_parameters:
+      max_tokens: 4096
+
+  system.ai.claude-opus-4-8:
+    display_name: Anthropic Claude Opus 4.8
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-opus-4-8
+    endpoint: databricks-claude-opus-4-8
+    family: claude
+    tier: frontier
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: false
+    reasoning_mode: thinking
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
+    default_parameters:
+      max_tokens: 2048
+
+  system.ai.claude-opus-4-6:
+    display_name: Anthropic Claude Opus 4.6
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-opus-4-6
+    endpoint: databricks-claude-opus-4-6
+    family: claude
+    tier: frontier
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: superseded
+    superseded_by: system.ai.claude-opus-4-7
+    temperature_supported: false
+    reasoning_mode: thinking
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
+    default_parameters:
+      max_tokens: 4096
+
+  system.ai.claude-opus-4-5:
+    display_name: Anthropic Claude Opus 4.5
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-opus-4-5
+    endpoint: databricks-claude-opus-4-5
+    family: claude
+    tier: frontier
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: superseded
+    superseded_by: system.ai.claude-opus-4-7
+    temperature_supported: false
+    reasoning_mode: thinking
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
+    default_parameters:
+      max_tokens: 4096
+
+  system.ai.claude-sonnet-4-6:
+    display_name: Anthropic Claude Sonnet 4.6
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-sonnet-4-6
+    endpoint: databricks-claude-sonnet-4-6
+    family: claude
+    tier: workhorse
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: thinking
+    swap_safe_for_agent: true
+    routable: true
+    default: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
+    default_parameters:
+      temperature: 0.0
+      max_tokens: 4096
+
+  system.ai.claude-sonnet-4-5:
+    display_name: Anthropic Claude Sonnet 4.5
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-sonnet-4-5
+    endpoint: databricks-claude-sonnet-4-5
+    family: claude
+    tier: workhorse
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: thinking
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
+    default_parameters:
+      temperature: 0.0
+      max_tokens: 4096
+
+  system.ai.claude-haiku-4-5:
+    display_name: Anthropic Claude Haiku 4.5
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.claude-haiku-4-5
+    endpoint: databricks-claude-haiku-4-5
+    family: claude
+    tier: fast
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: none
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, structured_output, streaming]
+    default_parameters:
+      temperature: 0.2
+      max_tokens: 1024
+
+  # ---- Open / throughput ----
+  system.ai.qwen35-122b-a10b:
+    display_name: Alibaba Qwen3.5 122B A10B
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.qwen35-122b-a10b
+    endpoint: databricks-qwen35-122b-a10b
+    family: qwen
+    tier: open_frontier
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: public_preview
+    temperature_supported: true
+    reasoning_mode: forced
+    swap_safe_for_agent: false
+    routable: true
+    capabilities: [text_input, text_output, tool_calling, structured_output, forced_reasoning, streaming]
+    default_parameters:
+      temperature: 0.2
+      max_tokens: 4096
+
+  system.ai.gpt-oss-120b:
+    display_name: OpenAI GPT OSS 120B
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.gpt-oss-120b
+    endpoint: databricks-gpt-oss-120b
+    family: gpt_oss
+    tier: throughput
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: reasoning_effort
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, tool_calling, structured_output, reasoning_effort, streaming]
+    default_parameters:
+      max_tokens: 2048
+
+  system.ai.gpt-oss-20b:
+    display_name: OpenAI GPT OSS 20B
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.gpt-oss-20b
+    endpoint: databricks-gpt-oss-20b
+    family: gpt_oss
+    tier: small
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: reasoning_effort
+    swap_safe_for_agent: true
+    routable: true
+    capabilities: [text_input, text_output, tool_calling, structured_output, reasoning_effort, streaming]
+    default_parameters:
+      max_tokens: 1024
+
+  system.ai.llama-4-maverick:
+    display_name: Meta Llama 4 Maverick
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.llama-4-maverick
+    endpoint: databricks-llama-4-maverick
+    family: llama
+    tier: throughput
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: none
+    swap_safe_for_agent: false
+    routable: true
+    capabilities: [text_input, text_output, image_input, tool_calling, streaming]
+    default_parameters:
+      temperature: 0.0
+      max_tokens: 2048
+
+  system.ai.meta-llama-3-3-70b-instruct:
+    display_name: Meta Llama 3.3 70B Instruct
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.meta-llama-3-3-70b-instruct
+    endpoint: databricks-meta-llama-3-3-70b-instruct
+    family: llama
+    tier: throughput
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: none
+    swap_safe_for_agent: false
+    routable: true
+    capabilities: [text_input, text_output, tool_calling, streaming]
+    default_parameters:
+      temperature: 0.0
+      max_tokens: 2048
+
+  system.ai.meta-llama-3-1-8b-instruct:
+    display_name: Meta Llama 3.1 8B Instruct
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.meta-llama-3-1-8b-instruct
+    endpoint: databricks-meta-llama-3-1-8b-instruct
+    family: llama
+    tier: small
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: none
+    swap_safe_for_agent: false
+    routable: true
+    capabilities: [text_input, text_output, tool_calling, streaming]
+    default_parameters:
+      temperature: 0.0
+      max_tokens: 1024
+
+  system.ai.gemma-3-12b:
+    display_name: Google Gemma 3 12B
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.gemma-3-12b
+    endpoint: databricks-gemma-3-12b
+    family: gemma
+    tier: small
+    task: llm/v1/chat
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: true
+    reasoning_mode: none
+    swap_safe_for_agent: false
+    routable: true
+    capabilities: [text_input, text_output, image_input, streaming]
+    default_parameters:
+      temperature: 0.0
+      max_tokens: 1024
+
+  # ---- Embeddings (catalog only; not chat-bindable) ----
+  system.ai.gte-large-en:
+    display_name: GTE Large EN
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.gte-large-en
+    endpoint: databricks-gte-large-en
+    family: embedding
+    tier: embedding
+    task: llm/v1/embeddings
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: false
+    reasoning_mode: none
+    swap_safe_for_agent: false
+    routable: false
+    routable_as_chat: false
+    capabilities: []
+    default_parameters: {}
+
+  system.ai.qwen3-embedding-0-6b:
+    display_name: Qwen3 Embedding 0.6B
+    provider_ref: databricks_ai_gateway
+    physical_model: system.ai.qwen3-embedding-0-6b
+    endpoint: databricks-qwen3-embedding-0-6b
+    family: embedding
+    tier: embedding
+    task: llm/v1/embeddings
+    billing_tier: pay-per-token
+    status: generally_available
+    temperature_supported: false
+    reasoning_mode: none
+    swap_safe_for_agent: false
+    routable: false
+    routable_as_chat: false
+    capabilities: []
+    default_parameters: {}

@@ -1,0 +1,13 @@
+version: 1.0.0
+registry_type: ProviderRegistry
+description: Unity AI Gateway OpenAI-compatible provider for system.ai model services
+
+providers:
+  databricks_ai_gateway:
+    type: unity_ai_gateway
+    model_provider: openai
+    base_url: https://adb-7181820732839861.1.azuredatabricks.net/ai-gateway/mlflow/v1
+    auth_strategy: workspace_client
+    defaults:
+      timeout: 120
+      max_retries: 3

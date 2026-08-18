@@ -1,1 +1,13 @@
-{"0": "Chat Model Wrapper (LangChain)", "1": "force-graph Library", "2": "force-graph Rendering", "3": "Model Catalog Registry", "4": "You.com Search API", "5": "marked.js Markdown Parser", "6": "Auth Bridge & Gateway Credentials", "7": "Global Logger Control Panel", "8": "Flask & SQLAlchemy Core", "9": "Identity & User Verification", "10": "Agent Logger Wrapper", "11": "force-graph Utilities", "12": "Databricks Auth Providers", "13": "Environment Config Reader", "14": "Connector Hub", "15": "force-graph Internals", "16": "FastAPI Auth Dependencies", "17": "OpenCode MCP Config", "18": "force-graph Layout", "19": "marked.js Tokens", "20": "Connector Exceptions", "21": "Document Text Service", "22": "Builder Chat UI", "23": "Profile Page UI", "24": "CLI Token Cache", "25": "New Project Form UI", "26": "Usage Dedup Patch", "27": "HTTPX Auth Client", "28": "Log Redaction Filters", "29": "Dashboard Home UI", "30": "Logger Namespace Registry", "31": "marked.js Helpers", "32": "Client Logger JS", "33": "API Fetch Wrapper JS", "34": "Theme Toggle JS", "35": "force-graph Canvas", "36": "Profile Normalize Tests", "37": "Graph Explorer UI", "38": "Auth Shim (Legacy)", "39": "Core Security Init", "40": "Exceptions Shim (Legacy)", "41": "Identity Shim (Legacy)", "42": "Databricks Connectors Init", "43": "Framework Integrations Init", "44": "Connectors Utils Init", "45": "Log Formatters", "46": "Model Factory Init", "47": "Model Factory Tests Init", "48": "API Utilities Init", "49": "Document Utils Init", "50": "Shared Utilities Init", "51": "Draggable Panel JS", "52": "KG Build Dialog JS", "53": "Chat Panel JS", "54": "Evidence Panel JS", "55": "Excel Renderer JS", "56": "Preview Panel JS", "57": "Sources Panel JS", "58": "Studio Panel JS", "59": "Panel Resizer JS", "60": "Project Metadata", "61": "Flask Blueprints Init", "62": "Workspace App Bootstrap JS"}
+{
+  "0": "✅ Databricks App Deployment Setup — COMPLETE",
+  "1": "Databricks App Deployment Setup — Complete Reference",
+  "2": "LangChain MCP Setup Complete",
+  "3": "Databricks App Deployment Verification Guide",
+  "4": "4. Master Git Version Control Reference",
+  "5": "Sprint 1 Deployment Task — Databricks App Setup",
+  "6": "Project Status — Procure AI Workspace",
+  "7": "Handoff: Sprint 1 Databricks App Deployment Setup",
+  "8": "Databricks App Deployment — Quick Checklist",
+  "9": "2.2 Package Management & Dependencies",
+  "10": "Who Can Use It"
+}

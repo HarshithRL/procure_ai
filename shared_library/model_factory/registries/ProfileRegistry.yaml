@@ -1,0 +1,105 @@
+version: 1.0.0
+registry_type: ProfileRegistry
+description: Task-oriented profiles mapped to system.ai model services (profile-first routing)
+
+profiles:
+  fast_chat:
+    label: Fast chat
+    description: Quick replies. Best for short questions.
+    effort: low
+    surfaces: [chat, power_user]
+    default_model: system.ai.claude-haiku-4-5
+    fallback_model: system.ai.claude-sonnet-4-6
+    primary: system.ai.claude-haiku-4-5
+    fallbacks:
+      - system.ai.claude-sonnet-4-6
+      - system.ai.gpt-oss-20b
+    requires: [text_input, tool_calling, streaming]
+    default_hyperparameters:
+      temperature: 0.2
+      max_tokens: 1024
+
+  balanced:
+    label: Balanced
+    description: Everyday chat with stronger reasoning.
+    effort: medium
+    surfaces: [chat, power_user]
+    default_model: system.ai.claude-sonnet-4-6
+    fallback_model: system.ai.claude-sonnet-4-5
+    primary: system.ai.claude-sonnet-4-6
+    fallbacks:
+      - system.ai.claude-sonnet-4-5
+      - system.ai.claude-haiku-4-5
+      - system.ai.gpt-oss-120b
+    requires: [text_input, tool_calling, structured_output]
+    default_hyperparameters:
+      temperature: 0.0
+      max_tokens: 4096
+
+  deep_reasoning:
+    label: Deep reasoning
+    description: Harder problems. Slower, more thorough.
+    effort: high
+    surfaces: [chat, power_user]
+    default_model: system.ai.claude-opus-4-7
+    fallback_model: system.ai.claude-opus-4-8
+    primary: system.ai.claude-opus-4-7
+    fallbacks:
+      - system.ai.claude-opus-4-8
+      - system.ai.claude-sonnet-4-6
+    requires: [text_input, tool_calling, extended_thinking]
+    default_hyperparameters:
+      max_tokens: 4096
+
+  vision_document:
+    label: Vision document
+    surfaces: [power_user]
+    default_model: system.ai.claude-opus-4-7
+    fallback_model: system.ai.claude-sonnet-4-6
+    primary: system.ai.claude-opus-4-7
+    fallbacks:
+      - system.ai.claude-sonnet-4-6
+      - system.ai.llama-4-maverick
+    requires: [image_input, text_output, structured_output]
+    default_hyperparameters:
+      max_tokens: 8000
+
+  intent_router:
+    label: Intent router
+    surfaces: [internal]
+    default_model: system.ai.gpt-oss-20b
+    fallback_model: system.ai.gemma-3-12b
+    primary: system.ai.gpt-oss-20b
+    fallbacks:
+      - system.ai.gemma-3-12b
+      - system.ai.claude-haiku-4-5
+    requires: [structured_output, text_input]
+    default_hyperparameters:
+      max_tokens: 256
+      temperature: 0.0
+
+  guardrail:
+    label: Guardrail
+    surfaces: [internal]
+    default_model: system.ai.gpt-oss-20b
+    fallback_model: system.ai.gemma-3-12b
+    primary: system.ai.gpt-oss-20b
+    fallbacks:
+      - system.ai.gemma-3-12b
+    requires: [structured_output, text_input]
+    default_hyperparameters:
+      max_tokens: 512
+      temperature: 0.0
+
+  long_context_analysis:
+    label: Long context analysis
+    surfaces: [power_user]
+    default_model: system.ai.qwen35-122b-a10b
+    fallback_model: system.ai.claude-sonnet-4-6
+    primary: system.ai.qwen35-122b-a10b
+    fallbacks:
+      - system.ai.claude-sonnet-4-6
+    requires: [text_input, very_long_context]
+    default_hyperparameters:
+      max_tokens: 8000
+      temperature: 0.2

@@ -39,9 +39,11 @@ sync:
     - README.md
     - note.md
     
-    # Database and local artifacts
+    # Database and local artifacts (will be recreated on app startup)
     - procure_ai.db
     - "*.db-journal"
+    - "*.db-shm"
+    - "*.db-wal"
     - instance/
     
     # Build and distribution artifacts
@@ -59,7 +61,6 @@ sync:
     - uv.lock
     
     # Empty or future directories (not part of Sprint 1)
-    - agent_server/
     - bridge/
     
     # OS files
