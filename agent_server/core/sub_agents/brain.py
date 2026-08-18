@@ -127,8 +127,16 @@ def build_brain_agent(
     # Load system prompt
     system_prompt = get_brain_system_prompt(prefer_registry=True)
 
-    # Sprint 1: No tools. Tools added in Sprint 2 (memory lookup, web search stub).
-    tools: list[Any] = []
+    # Sprint 1: Register analysis tools (query_kg, search_evidence, generate_excel)
+    try:
+        from agent_server.tools.toolkit import make_analysis_tools
+        tools = make_analysis_tools()
+    except ImportError as e:
+        logger.warning(
+            "Failed to load analysis tools: %s. Falling back to empty tools list.",
+            e,
+        )
+        tools: list[Any] = []
 
     # Create and compile the agent graph using create_agent
     # Returns: CompiledStateGraph[AgentState, None, InputAgentState, OutputAgentState]
