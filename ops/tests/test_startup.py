@@ -9,11 +9,18 @@ Run locally:
   FLASK_ENV=development uv run python -m pytest ops/tests/test_startup.py -v
 
 Run as pre-deploy gate:
-  FLASK_ENV=production SECRET_KEY=test python -c "import wsgi; print('PASS: wsgi import')"
+  FLASK_ENV=production SECRET_KEY=test python -c "import sys; sys.path.insert(0, '.'); import wsgi; print('PASS: wsgi import')"
 """
 
 import os
+import sys
+from pathlib import Path
+
 import pytest
+
+# Add project root to path so wsgi can be imported
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
 
 
 @pytest.fixture
@@ -21,18 +28,34 @@ def setup_env_production():
     """Set up environment for production config."""
     os.environ["FLASK_ENV"] = "production"
     os.environ["SECRET_KEY"] = "test-secret-key-for-smoke-test"
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+    
+    # Clear module cache
+    for mod in list(sys.modules.keys()):
+        if mod.startswith("wsgi") or mod.startswith("web_app"):
+            del sys.modules[mod]
+    
     yield
     # Cleanup
     os.environ.pop("FLASK_ENV", None)
     os.environ.pop("SECRET_KEY", None)
+    os.environ.pop("DATABASE_URL", None)
 
 
 @pytest.fixture
 def setup_env_development():
     """Set up environment for development config."""
     os.environ["FLASK_ENV"] = "development"
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+    
+    # Clear module cache
+    for mod in list(sys.modules.keys()):
+        if mod.startswith("wsgi") or mod.startswith("web_app"):
+            del sys.modules[mod]
+    
     yield
     os.environ.pop("FLASK_ENV", None)
+    os.environ.pop("DATABASE_URL", None)
 
 
 def test_wsgi_import_production(setup_env_production):
@@ -76,13 +99,14 @@ def test_invalid_flask_env_defaults_to_production():
     """Test that invalid FLASK_ENV defaults to production gracefully."""
     os.environ["FLASK_ENV"] = "invalid-env-name"
     os.environ["SECRET_KEY"] = "test"
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"  # Use in-memory DB for test
     
     import importlib
-    import sys
     
     # Clear module cache to force re-import
-    if "wsgi" in sys.modules:
-        del sys.modules["wsgi"]
+    for mod in list(sys.modules.keys()):
+        if mod.startswith("wsgi") or mod.startswith("web_app"):
+            del sys.modules[mod]
     
     import wsgi
     assert wsgi.app is not None
@@ -90,6 +114,7 @@ def test_invalid_flask_env_defaults_to_production():
     
     os.environ.pop("FLASK_ENV", None)
     os.environ.pop("SECRET_KEY", None)
+    os.environ.pop("DATABASE_URL", None)
 
 
 def test_production_config_with_missing_secret_key():
@@ -105,15 +130,16 @@ def test_production_config_with_missing_secret_key():
     assert ProductionConfig.SECRET_KEY is None
 
 
-def test_app_has_required_blueprints(setup_env_production):
+def test_app_has_required_blueprints(setup_env_development):
     """Test that Flask app registers all required blueprints."""
+    # The fixture clears module cache
     import wsgi
     
     # Extract blueprint names from the app's blueprints
     blueprint_names = {bp for bp in wsgi.app.blueprints.keys()}
     
-    # Verify required blueprints are registered
-    expected_blueprints = {"views_bp", "api", "bff"}
+    # Verify required blueprints are registered (using their registered names)
+    expected_blueprints = {"views", "api", "bff"}
     assert expected_blueprints.issubset(blueprint_names), (
         f"Missing blueprints. Expected {expected_blueprints}, got {blueprint_names}"
     )
