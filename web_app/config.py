@@ -7,6 +7,7 @@ See: https://flask.palletsprojects.com/en/3.0.x/config/
 
 import os
 
+
 class DevelopmentConfig:
     DEBUG = True
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
@@ -23,7 +24,11 @@ class DevelopmentConfig:
 
 class ProductionConfig:
     DEBUG = False
-    SECRET_KEY = os.environ.get("SECRET_KEY")  # MUST be set via environment (Databricks Secret)
+    # Secret key must be set via Databricks App secret binding in app.yaml.
+    # If not set, Flask will use None and session signing will fail at runtime.
+    # This is intentional: fail at first request, not at boot, to support config validation.
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    
     # Production (Databricks Apps) uses SQLite in /tmp (ephemeral)
     # Set DATABASE_URL env var in app.yaml for alternate storage (e.g., Lakebase PostgreSQL in Sprint 2)
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:////tmp/procure_ai.db")

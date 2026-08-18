@@ -29,6 +29,7 @@ def main():
     print("[launcher] FastAPI will bind to 0.0.0.0:8001")
 
     # Start FastAPI server (uvicorn)
+    # Note: Do NOT redirect stdout/stderr; allow uvicorn to inherit and stream logs to Databricks Apps console.
     fastapi_proc = subprocess.Popen(
         [
             sys.executable,
@@ -42,8 +43,6 @@ def main():
             "--loop",
             "auto",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
     )
 
     # Give FastAPI time to start
@@ -100,16 +99,20 @@ def main():
         while fastapi_proc.poll() is None and flask_proc.poll() is None:
             time.sleep(1)
 
-        # If one exits, stop the other
+        # If one exits, stop the other and propagate its exit code
         if fastapi_proc.poll() is not None:
-            print(f"[launcher] FastAPI exited with code {fastapi_proc.returncode}")
+            exit_code = fastapi_proc.returncode
+            print(f"[launcher] FastAPI exited with code {exit_code}")
             flask_proc.terminate()
             flask_proc.wait()
+            sys.exit(exit_code or 1)
 
         if flask_proc.poll() is not None:
-            print(f"[launcher] Flask exited with code {flask_proc.returncode}")
+            exit_code = flask_proc.returncode
+            print(f"[launcher] Flask exited with code {exit_code}")
             fastapi_proc.terminate()
             fastapi_proc.wait()
+            sys.exit(exit_code or 1)
 
     except KeyboardInterrupt:
         print("\n[launcher] Interrupted. Shutting down...")

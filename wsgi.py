@@ -45,54 +45,45 @@ try:
 
     configure_root_logging()
 
-    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+    # Default MLflow URI: if DATABRICKS_HOST is set, use databricks://.
+    # Otherwise, use explicit MLFLOW_TRACKING_URI or skip tracing.
+    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if not mlflow_uri and os.getenv("DATABRICKS_HOST"):
+        mlflow_uri = "databricks"
+    
     mlflow_exp = os.getenv("MLFLOW_EXPERIMENT", "procure_ai")
     
-    mlflow.set_tracking_uri(mlflow_uri)
-    mlflow.set_experiment(mlflow_exp)
-    mlflow.langchain.autolog()
-    
-    logger.info(f"MLflow tracing bootstrapped | uri={mlflow_uri} | exp={mlflow_exp}")
+    if mlflow_uri:
+        mlflow.set_tracking_uri(mlflow_uri)
+        mlflow.set_experiment(mlflow_exp)
+        mlflow.langchain.autolog()
+        logger.info(f"MLflow tracing bootstrapped | uri={mlflow_uri} | exp={mlflow_exp}")
+    else:
+        logger.info("MLflow tracing disabled (no MLFLOW_TRACKING_URI or DATABRICKS_HOST)")
 except ImportError:
     logger.warning("MLflow not available; tracing disabled")
 except Exception as e:
     logger.warning(f"MLflow bootstrap error: {e}; continuing without tracing")
 
 # Create Flask app using the factory pattern
+from web_app.config import config as config_dict
 from web_app import create_app
 
-flask_env = os.getenv("FLASK_ENV", "production")
+flask_env = os.getenv("FLASK_ENV", "production").lower()
+
+# Normalize env name; default to production if invalid
+if flask_env not in config_dict:
+    logger.warning(f"Invalid FLASK_ENV={flask_env}; defaulting to production")
+    flask_env = "production"
+
 app = create_app(config_name=flask_env)
 
-logger.info(f"Flask app created | env={flask_env} | config={app.config['ENV']}")
+logger.info(f"Flask app created | env={flask_env} | debug={app.debug}")
 
-# Graceful shutdown handler (Databricks Apps constraint: 15-second window)
-def handle_sigterm(signum, frame):
-    """
-    Handle SIGTERM signal for graceful shutdown.
-    
-    Databricks Apps runtime sends SIGTERM before SIGKILL with a strict 15-second window.
-    This handler ensures:
-    - Active database transactions complete or rollback
-    - Scoped sessions are properly removed
-    - Resources are cleaned up
-    """
-    logger.info("SIGTERM received. Initiating graceful shutdown...")
-    try:
-        # Close any pending database sessions
-        from web_app.database import db_session
-        if db_session:
-            db_session.remove()
-            logger.info("Database sessions closed")
-    except Exception as e:
-        logger.error(f"Error closing database sessions: {e}")
-    
-    logger.info("Shutdown complete. Exiting.")
-    sys.exit(0)
-
-
-# Register signal handler
-signal.signal(signal.SIGTERM, handle_sigterm)
+# NOTE: SIGTERM handling is managed by ops/deployment/run_app.py (launcher process).
+# Do NOT register signal handlers at module level in gunicorn workers —
+# it overwrites gunicorn's built-in graceful-drain mechanism.
+# Each worker should allow gunicorn to orchestrate shutdown per its lifecycle.
 
 if __name__ == "__main__":
     # This runs when invoked as `python wsgi.py` (not gunicorn)
