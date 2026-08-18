@@ -183,13 +183,63 @@ def get_identity() -> dict[str, Any]:
 
 @bff_bp.route("/health", methods=["GET"])
 def health() -> dict[str, Any]:
-    """GET /bff/health → agent_server /health."""
+    """GET /bff/health → agent_server /health.
+    
+    Checks if the FastAPI agent server is running and responsive.
+    Returns {"status": "ok", "graph_ready": true/false} if agent is running.
+    Returns {"status": "error", "error": "reason"} if agent is unreachable.
+    
+    Troubleshooting:
+    - If status is "error" with "Connection refused", start agent_server:
+        uv run uvicorn agent_server.start_server:app --reload --port 8001
+    - Or use dual-server launcher:
+        uv run python ops/deployment/run_app.py
+    """
+    agent_url = f"{AGENT_SERVER_URL}/health"
+    
     try:
+        logger.debug(f"[BFF] checking agent health at {agent_url}")
         httpx_response = httpx.get(
-            f"{AGENT_SERVER_URL}/health",
+            agent_url,
             timeout=5.0,
         )
-        return httpx_response.json()
+        
+        if httpx_response.status_code != 200:
+            logger.warning(
+                f"[BFF] agent health check failed | status={httpx_response.status_code} | body={httpx_response.text}"
+            )
+            return {
+                "status": "error",
+                "error": f"agent_server returned {httpx_response.status_code}",
+                "agent_url": agent_url,
+            }
+        
+        result = httpx_response.json()
+        logger.info(f"[BFF] agent health ok | graph_ready={result.get('graph_ready', 'unknown')}")
+        return result
+        
+    except httpx.ConnectError as e:
+        logger.warning(
+            f"[BFF] cannot connect to agent_server | url={agent_url} | error={type(e).__name__}: {e}"
+        )
+        return {
+            "status": "error",
+            "error": "agent_server unreachable (connection refused)",
+            "agent_url": agent_url,
+            "hint": "Start agent_server: uv run python ops/deployment/run_app.py",
+        }
+    except httpx.TimeoutException as e:
+        logger.warning(f"[BFF] agent health check timeout | url={agent_url} | timeout=5.0s")
+        return {
+            "status": "error",
+            "error": "agent_server timeout (no response in 5s)",
+            "agent_url": agent_url,
+            "hint": "Agent server may be overloaded or unresponsive",
+        }
     except Exception as e:
-        logger.exception(f"[BFF] health error: {e}")
-        return {"status": "error", "error": str(e)}
+        logger.exception(f"[BFF] health check error | url={agent_url} | error={type(e).__name__}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "agent_url": agent_url,
+        }

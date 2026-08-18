@@ -7,12 +7,12 @@ See: https://flask.palletsprojects.com/en/3.0.x/config/
 
 import os
 
-
 class DevelopmentConfig:
     DEBUG = True
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-    # Local development uses SQLite in current directory
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///procure_ai.db")
+    # Local development uses in-memory SQLite (avoids filesystem issues with uv on Windows)
+    # Override with DATABASE_URL env var if needed
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session cookie security (per auth.md: HttpOnly, SameSite=Lax)

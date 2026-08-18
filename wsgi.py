@@ -1,11 +1,108 @@
-"""WSGI entry point for Gunicorn.
+"""WSGI entry point for Gunicorn — Procure AI Flask application.
 
-Gunicorn needs a module-level app object. This file creates and exports it.
+This is the canonical entry point for production deployment:
+    gunicorn "wsgi:app" -w 4 -b 0.0.0.0:8000
+
+Or locally with flask CLI:
+    flask --app wsgi run --debug --port 5000
+
+Handles:
+- Logging configuration (shared with agent_server)
+- MLflow tracing bootstrap
+- Flask app factory initialization
+- Graceful SIGTERM shutdown (Databricks Apps constraint: 15-second window)
+
+Environment variables:
+    FLASK_ENV: "development" or "production" (default: production)
+    DATABRICKS_APP_PORT: Port to bind to (default: 8000 on Databricks Apps, 5000 local)
+    DATABASE_URL: SQLAlchemy connection string (default: sqlite:////tmp/procure_ai.db)
+    SECRET_KEY: Flask secret key for session signing (from Databricks Secret in prod)
+    DATABRICKS_HOST: Workspace hostname for WorkspaceClient (e.g., https://adb-xxx.azuredatabricks.net)
+    MLFLOW_TRACKING_URI: MLflow tracking server URI (optional)
+    MLFLOW_EXPERIMENT: MLflow experiment name (optional)
+
+IMPORTANT: This is paired with agent_server/start_server.py (FastAPI on port 8001).
+For local development, use ops/deployment/run_app.py to launch both:
+    uv run python ops/deployment/run_app.py
 """
 
+import logging
+import os
+import signal
+import sys
+
+# Configure logging FIRST, before any imports that use logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Bootstrap MLflow tracing (if available)
+try:
+    import mlflow
+    from shared_library.global_logger_hub import configure_root_logging
+
+    configure_root_logging()
+
+    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+    mlflow_exp = os.getenv("MLFLOW_EXPERIMENT", "procure_ai")
+    
+    mlflow.set_tracking_uri(mlflow_uri)
+    mlflow.set_experiment(mlflow_exp)
+    mlflow.langchain.autolog()
+    
+    logger.info(f"MLflow tracing bootstrapped | uri={mlflow_uri} | exp={mlflow_exp}")
+except ImportError:
+    logger.warning("MLflow not available; tracing disabled")
+except Exception as e:
+    logger.warning(f"MLflow bootstrap error: {e}; continuing without tracing")
+
+# Create Flask app using the factory pattern
 from web_app import create_app
 
-app = create_app("development")
+flask_env = os.getenv("FLASK_ENV", "production")
+app = create_app(config_name=flask_env)
+
+logger.info(f"Flask app created | env={flask_env} | config={app.config['ENV']}")
+
+# Graceful shutdown handler (Databricks Apps constraint: 15-second window)
+def handle_sigterm(signum, frame):
+    """
+    Handle SIGTERM signal for graceful shutdown.
+    
+    Databricks Apps runtime sends SIGTERM before SIGKILL with a strict 15-second window.
+    This handler ensures:
+    - Active database transactions complete or rollback
+    - Scoped sessions are properly removed
+    - Resources are cleaned up
+    """
+    logger.info("SIGTERM received. Initiating graceful shutdown...")
+    try:
+        # Close any pending database sessions
+        from web_app.database import db_session
+        if db_session:
+            db_session.remove()
+            logger.info("Database sessions closed")
+    except Exception as e:
+        logger.error(f"Error closing database sessions: {e}")
+    
+    logger.info("Shutdown complete. Exiting.")
+    sys.exit(0)
+
+
+# Register signal handler
+signal.signal(signal.SIGTERM, handle_sigterm)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # This runs when invoked as `python wsgi.py` (not gunicorn)
+    # For production, use: gunicorn "wsgi:app" -w 4 -b 0.0.0.0:8000
+    # For local dev, use: flask --app wsgi run --debug --port 5000
+    
+    port = int(os.getenv("DATABRICKS_APP_PORT", 5000))
+    debug = flask_env == "development"
+    
+    logger.info(f"Starting Flask app on 0.0.0.0:{port} (debug={debug})")
+    logger.info("Note: Agent server not started. Run ops/deployment/run_app.py for dual-server mode.")
+    
+    app.run(debug=debug, host="0.0.0.0", port=port)
