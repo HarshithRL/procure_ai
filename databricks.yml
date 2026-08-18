@@ -38,6 +38,14 @@ sync:
     - AGENTS.md
     - README.md
     - note.md
+    - graphify-out/
+
+    # Local runtime artifacts (logs are recreated in-container)
+    - data/logs/
+    - "*.log"
+
+    # Tests are not needed in the app runtime
+    - ops/tests/
     
     # Database and local artifacts (will be recreated on app startup)
     - procure_ai.db
