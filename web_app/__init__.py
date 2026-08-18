@@ -22,10 +22,12 @@ def create_app(config_name: str = "development") -> Flask:
 
     from .auth import get_current_user
     from .blueprints.api import api_bp
+    from .blueprints.bff import bff_bp
     from .blueprints.views import views_bp
 
     app.register_blueprint(views_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(bff_bp)
 
     @app.context_processor
     def inject_current_user():

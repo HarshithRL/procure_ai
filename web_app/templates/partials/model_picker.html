@@ -1,0 +1,56 @@
+{# Model selection chip with dropdown. #}
+<div class="composer-model" data-model-picker>
+  <button
+    type="button"
+    class="composer-model-chip"
+    data-model-picker-trigger
+    id="model-picker-trigger"
+    aria-label="Choose model"
+    aria-expanded="false"
+    aria-haspopup="dialog"
+    aria-controls="model-picker-dialog"
+  >
+    <span class="composer-model-chip-label" data-model-picker-label>Balanced</span>
+    <svg class="composer-model-chip-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 9l6 6 6-6"/>
+    </svg>
+  </button>
+
+  <div
+    class="model-picker-menu"
+    id="model-picker-dialog"
+    data-model-menu
+    hidden
+    role="dialog"
+    aria-label="Choose model"
+  >
+    <input
+      type="search"
+      class="model-picker-search"
+      data-model-search
+      placeholder="Search models"
+      aria-label="Search models"
+      aria-controls="model-picker-list"
+      autocomplete="off"
+    >
+    <div class="model-picker-modes" data-mode-chips role="radiogroup" aria-label="Mode">
+      <label class="model-mode-chip">
+        <input type="radio" name="model-mode" value="fast_chat" aria-label="Fast chat">
+        <span>Fast</span>
+      </label>
+      <label class="model-mode-chip">
+        <input type="radio" name="model-mode" value="balanced" checked aria-label="Balanced">
+        <span>Balanced</span>
+      </label>
+      <label class="model-mode-chip">
+        <input type="radio" name="model-mode" value="deep_reasoning" aria-label="Deep reasoning">
+        <span>Deep</span>
+      </label>
+    </div>
+    <p class="model-picker-status" data-picker-status hidden></p>
+    <div class="model-picker-list" id="model-picker-list" data-model-list role="listbox" aria-label="Model"></div>
+    <p class="model-picker-warn" data-swap-warn hidden>
+      May change behavior in this chat.
+    </p>
+  </div>
+</div>

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat · Procure AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+{% endblock %}
+
+{% block body_class %}chat-page{% endblock %}
+
+{% block body %}
+<div class="chat-layout" id="chat-app" data-chat-app>
+  <aside class="chat-rail" aria-label="Chat control rail">
+    <h2>Procure AI</h2>
+    <p class="rail-caption">Procurement Assistant</p>
+
+    <div class="rail-stack">
+      <a class="btn btn-block" href="/">Home</a>
+      <a class="btn btn-block" href="/profile">Profile</a>
+    </div>
+
+    <hr class="rail-divider">
+    <div class="rail-section-title">Agent status</div>
+    <div id="chat-agent-status">
+      <span class="status-pill offline" data-agent-pill>● Checking…</span>
+      <p class="rail-meta" data-agent-hint hidden>Start: <code>uv run python ops/deployment/run_app.py</code></p>
+    </div>
+
+    <hr class="rail-divider">
+    <div class="rail-section-title">Session</div>
+    <button type="button" class="btn btn-block" data-chat-new>New conversation</button>
+    <p class="rail-meta" data-thread-meta>No active thread</p>
+    <p class="rail-meta" data-message-count>0 messages</p>
+    <p class="rail-meta" data-attachment-meta hidden></p>
+
+    <hr class="rail-divider">
+    <div class="rail-stack">
+      <button type="button" class="btn btn-block" data-theme-toggle>
+        <span data-theme-label>Dark theme</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="chat-main">
+    <div class="chat-shell-header">
+      <div>
+        <h1>Chat</h1>
+        <p>Upload procurement documents (RFQs, proposals, contracts). The agent analyzes, compares vendors, and helps with sourcing decisions.</p>
+      </div>
+    </div>
+
+    <div class="chat-transcript" id="chat-transcript" data-chat-transcript>
+      <div class="panel" data-chat-empty>
+        <div class="panel-title">Start a conversation</div>
+        <div class="panel-sub">
+          Examples: help me compare vendors · summarize this RFQ · what are the key SLA terms · analyze pricing
+        </div>
+      </div>
+    </div>
+
+    <form class="chat-composer" id="chat-composer" data-chat-composer>
+      <div class="composer-inner">
+        {% set accept_attr = ".pdf,.doc,.docx,.docm,.ppt,.pptx,.xls,.xlsx,.xlsm,.csv,.odt,.ods,.odp,.rtf,.epub,.txt,.md,application/pdf" %}
+        {% include 'partials/attach_menu.html' %}
+        <textarea
+          id="chat-input"
+          data-chat-input
+          rows="1"
+          placeholder="Message the assistant…"
+          aria-label="Message the assistant"
+        ></textarea>
+        <button type="submit" class="btn btn-primary composer-send" data-chat-send title="Send" aria-label="Send">↑</button>
+      </div>
+      <div class="composer-meta">
+        {% include 'partials/web_search_chip.html' %}
+        {% include 'partials/model_picker.html' %}
+      </div>
+      <div class="composer-pending" data-pending-file hidden>
+        <span data-pending-label></span>
+        <button type="button" class="composer-pending-clear" data-pending-clear aria-label="Clear attachment">×</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/feedback.js') }}" defer></script>
+<script src="{{ url_for('static', filename='dist/chat-stream.js') }}" defer></script>
+{% endblock %}

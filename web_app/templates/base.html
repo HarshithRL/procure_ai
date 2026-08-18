@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Procura AI{% endblock %}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='brand/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='brand/favicon-32.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ds/classical.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ds/nocturne.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ds/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="ds-classical">
+    <script>
+        // Pre-paint theme resolution: light = Classical, dark = Nocturne,
+        // system = OS preference. Runs before content renders to avoid flash.
+        (function () {
+            var mode = localStorage.getItem("theme") || "system";
+            var dark = mode === "dark" ||
+                (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            document.body.className = dark ? "ds-nocturne" : "ds-classical";
+        })();
+    </script>
+    <div class="app-shell">
+        {% if not hide_sidebar %}{% include "_sidebar.html" %}{% endif %}
+        <div class="app-main">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/core/logger.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar-collapse.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

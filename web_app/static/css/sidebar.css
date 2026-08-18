@@ -1,0 +1,256 @@
+/* Sidebar layout — fixed left rail for the Procura AI app shell.
+   Uses ONLY existing design-system tokens (css/ds/*). No new CSS variables.
+   All rules are scoped under .app-shell / .app-shell .sidebar so they never
+   collide with the pre-existing .sidebar-nav / .sidebar-content classes that
+   main.css defines for the chat Sources panel. */
+
+/* ---- App shell: sidebar rail + main column ------------------------- */
+.app-shell {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+    /* overflow-y:auto (not hidden) so pages that rely on viewport-level
+       scrolling (e.g. profile's .screen--scroll) are not clipped by the
+       100vh shell. Pages with their own .app-scroll (e.g. index) fill the
+       column exactly, so no double scrollbar appears. */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Sidebar rail -------------------------------------------------- */
+.app-shell .sidebar {
+    width: 248px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-divider);
+    padding: 18px 16px;
+    gap: 12px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-500) transparent;
+    /* Smooth transition for width when collapsing (200ms) */
+    transition: width 0.2s var(--ease);
+}
+
+/* Collapsed state: narrow sidebar (56px) for icon-only display */
+.app-shell .sidebar.is-collapsed {
+    width: 56px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* ---- Sidebar collapse toggle button --------------------------------- */
+.app-shell .sidebar .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--color-text);
+    transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.app-shell .sidebar .sidebar-toggle:hover {
+    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.app-shell .sidebar .sidebar-toggle:active {
+    background: color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+.app-shell .sidebar .sidebar-toggle:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+/* Chevron icon rotates 180deg when collapsed */
+.app-shell .sidebar .sidebar-toggle svg {
+    transition: transform 0.2s var(--ease);
+}
+
+.app-shell .sidebar.is-collapsed .sidebar-toggle svg {
+    transform: rotate(180deg);
+}
+
+/* Brand lockup — stack the Etex logo above the "Procura AI" wordmark.
+    The partial renders them inline (inline-flex, side by side); we only
+    override the layout direction, scoped to the sidebar. */
+.app-shell .sidebar .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -4px;  /* Offset for spacing balance with toggle button */
+}
+
+.app-shell .sidebar .sidebar-brand .nav-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 2px 0 4px;
+}
+
+/* Hide brand text content when collapsed */
+.app-shell .sidebar .sidebar-brand-content {
+    overflow: hidden;
+    transition: opacity 0.2s var(--ease);
+}
+
+.app-shell .sidebar.is-collapsed .sidebar-brand-content {
+    display: none;
+}
+
+/* When collapsed, center the toggle button */
+.app-shell .sidebar.is-collapsed .sidebar-brand {
+    justify-content: center;
+    margin-bottom: 0;
+}
+
+/* Thin divider rule used between sidebar sections */
+.app-shell .sidebar .sidebar-divider {
+    border: 0;
+    border-top: 1px solid var(--color-divider);
+    margin: 2px 0;
+    height: 0;
+}
+
+/* Flex spacer pushes the footer (theme + user) to the bottom of the rail */
+.app-shell .sidebar .sidebar-spacer {
+    flex: 1 1 auto;
+}
+
+/* ---- Nav links ----------------------------------------------------- */
+/* Scoped under .app-shell .sidebar so these rules outrank the base
+   .sidebar-nav selector in main.css (which belongs to the chat panel). */
+.app-shell .sidebar .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: auto;
+    flex: none;
+    padding: 0;
+    overflow: visible;
+}
+
+.app-shell .sidebar .sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+/* Hide link text when sidebar is collapsed; keep icon visible */
+.app-shell .sidebar .sidebar-link-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: opacity 0.2s var(--ease);
+}
+
+.app-shell .sidebar.is-collapsed .sidebar-link-text {
+    display: none;
+}
+
+/* When collapsed, center the icon in the link */
+.app-shell .sidebar.is-collapsed .sidebar-nav a {
+    justify-content: center;
+    padding: 10px;
+}
+
+.app-shell .sidebar .sidebar-nav a:hover {
+    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+/* Active state: light-orange wash in light theme, dark-orange wash in dark
+   theme (--etex-orange-secondary is defined in both), with accent text. */
+.app-shell .sidebar .sidebar-nav a.is-active,
+.app-shell .sidebar .sidebar-nav a[aria-current="page"] {
+    background: var(--etex-orange-secondary);
+    color: var(--app-accent-text);
+    font-weight: 600;
+}
+
+.app-shell .sidebar .sidebar-nav a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+/* ---- Footer: theme toggle + user block ----------------------------- */
+.app-shell .sidebar .sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: none;
+}
+
+/* Stretch the segmented theme control to the full sidebar width */
+.app-shell .sidebar .sidebar-footer .seg {
+    display: flex;
+    width: 100%;
+    transition: flex-direction 0.2s var(--ease);
+}
+
+.app-shell .sidebar .sidebar-footer .seg-opt {
+    flex: 1 1 0;
+    justify-content: center;
+}
+
+/* When collapsed, hide theme toggle labels and stack buttons vertically */
+.app-shell .sidebar.is-collapsed .sidebar-footer .seg-opt > label {
+    display: none;
+}
+
+.app-shell .sidebar.is-collapsed .sidebar-footer .seg {
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* User block — stack the avatar/name chip above the Log out link */
+.app-shell .sidebar .sidebar-footer-user {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    transition: gap 0.2s var(--ease);
+}
+
+.app-shell .sidebar .sidebar-footer-user .user-chip {
+    width: 100%;
+    max-width: none;
+}
+
+.app-shell .sidebar .sidebar-footer-user .btn-ghost {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+/* When collapsed, hide logout button and reduce gap */
+.app-shell .sidebar.is-collapsed .sidebar-footer-user {
+    gap: 4px;
+}
+
+.app-shell .sidebar.is-collapsed .sidebar-footer-user .btn-ghost {
+    display: none;
+}

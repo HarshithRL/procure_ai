@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Projects — Procura AI{% endblock %}
+
+{% block content %}
+<div class="screen">
+    <div class="app-scroll" style="padding:34px 40px;flex:1;min-height:0">
+        <div style="display:flex;align-items:flex-end;gap:20px">
+            <h2 style="margin:0">Sourcing projects</h2>
+            <span id="projects-summary" class="app-muted" style="font-size:13px;padding-bottom:5px"></span>
+            <a class="btn btn-primary" style="font-size:12px;text-decoration:none;margin-left:auto" href="/projects/new">New sourcing project</a>
+        </div>
+        <div id="dashboard-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0 8px">
+            <div class="app-tint" style="padding:12px 14px;border:1px solid var(--color-divider);border-radius:var(--radius-md)">
+                <span class="app-faint" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">Projects</span>
+                <div id="kpi-projects" class="app-num" style="font-family:var(--font-heading);font-size:22px;margin-top:2px">—</div>
+            </div>
+            <div class="app-tint" style="padding:12px 14px;border:1px solid var(--color-divider);border-radius:var(--radius-md)">
+                <span class="app-faint" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">Active</span>
+                <div id="kpi-active" class="app-num" style="font-family:var(--font-heading);font-size:22px;margin-top:2px">—</div>
+            </div>
+            <div class="app-tint" style="padding:12px 14px;border:1px solid var(--color-divider);border-radius:var(--radius-md)">
+                <span class="app-faint" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">3-yr spend</span>
+                <div id="kpi-spend" class="app-num" style="font-family:var(--font-heading);font-size:22px;margin-top:2px">—</div>
+            </div>
+            <div class="app-tint" style="padding:12px 14px;border:1px solid var(--color-divider);border-radius:var(--radius-md)">
+                <span class="app-faint" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">Documents</span>
+                <div id="kpi-docs" class="app-num" style="font-family:var(--font-heading);font-size:22px;margin-top:2px">—</div>
+            </div>
+        </div>
+        <hr class="hr">
+        <div class="app-num" style="display:grid;grid-template-columns:2.1fr 1fr .9fr 52px 52px 96px 76px 122px 78px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:0 8px 8px;border-bottom:1px solid var(--color-divider);color:color-mix(in srgb, var(--color-text) 58%, transparent)">
+            <span>Project</span><span>Category</span><span>Region</span><span>Vend.</span><span>Docs</span><span>Nodes / edges</span><span>3-yr spend</span><span>Status</span><span>Updated</span>
+        </div>
+        <div id="project-rows">
+            <p class="app-faint" style="font-size:12.5px;padding:14px 8px">Loading projects…</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/home.js') }}"></script>
+{% endblock %}

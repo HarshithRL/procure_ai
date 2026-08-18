@@ -1,0 +1,25 @@
+# Local development environment configuration
+# Used by uv and deployment scripts
+
+databricks:
+  host: "http://localhost:8001"
+  profile: "DEFAULT"
+  # token is read from DATABRICKS_TOKEN env var or ~/.databricks/profiles.json
+
+llm:
+  profile: "balanced"
+  # model resolved via model_factory from Unity AI Gateway
+
+agent:
+  db_path: "./agent_server/checkpoints.db"
+  
+logging:
+  level: "INFO"
+  dir: "./data/logs"
+
+mlflow:
+  tracking_uri: "http://127.0.0.1:5000"
+  experiment: "Procure AI"
+
+# For local testing without Databricks auth:
+# Set environment variable: USE_MOCK_MODEL=true

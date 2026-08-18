@@ -1,0 +1,14 @@
+{% if current_user %}
+{% set _dn = current_user.display_name or current_user.user_name or current_user.email or '?' %}
+{% set _parts = _dn.split() %}
+{% if _parts|length >= 2 %}
+{% set _ini = (_parts[0][0] ~ _parts[1][0])|upper %}
+{% else %}
+{% set _ini = _dn[:2]|upper %}
+{% endif %}
+<a href="/profile" class="user-chip" title="{{ _dn }}" aria-label="View profile" style="font-size:0">
+    <span class="user-avatar">{{ _ini }}</span>
+    <span class="user-chip-name app-muted" style="font-size:11px">{{ current_user.display_name or current_user.user_name }}</span>
+</a>
+<a class="btn btn-ghost" style="font-size:11px;text-decoration:none;padding:4px 10px" href="/api/auth/logout">Log out</a>
+{% endif %}

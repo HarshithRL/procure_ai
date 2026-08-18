@@ -2,21 +2,11 @@
 # Declarative app configuration with dual-identity SSO and resource bindings
 # See: https://docs.databricks.com/dev-tools/databricks-apps/app-runtime
 
-# Flask app startup command (gunicorn production server)
+# Dual-process launcher: FastAPI (agent_server:8001) + Flask (web_app:$DATABRICKS_APP_PORT)
 # Port is injected via DATABRICKS_APP_PORT env var (runtime default 8000)
 command:
-  - "gunicorn"
-  - "app:app"
-  - "-w"
-  - "4"
-  - "-b"
-  - "0.0.0.0:8000"
-  - "--timeout"
-  - "60"
-  - "--access-logfile"
-  - "-"
-  - "--error-logfile"
-  - "-"
+  - "python"
+  - "ops/deployment/run_app.py"
 
 # Environment variables & secrets
 env:

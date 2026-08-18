@@ -1,0 +1,37 @@
+{# File upload menu with paperclip icon. #}
+<div class="composer-attach" data-composer-attach>
+  <button
+    type="button"
+    class="btn composer-plus"
+    data-attach-menu-toggle
+    title="Add file"
+    aria-label="Add attachment"
+    aria-expanded="false"
+    aria-haspopup="menu"
+  >+</button>
+  <div class="attach-menu" data-attach-menu hidden role="menu">
+    <button
+      type="button"
+      class="attach-menu-item"
+      data-chat-attach-file
+      role="menuitem"
+    >
+      <span class="attach-menu-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </span>
+      <span>File</span>
+    </button>
+  </div>
+  <input
+    type="file"
+    class="composer-file-input"
+    accept="{{ accept_attr }}"
+    multiple
+    data-chat-file
+    hidden
+    tabindex="-1"
+    aria-label="File attachment"
+  >
+</div>

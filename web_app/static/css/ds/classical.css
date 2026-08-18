@@ -1,0 +1,311 @@
+/* Scoped to .ds-classical — Light theme for the Etex-branded Procura AI app.
+   Based on the Etex brand orange (#F06D0C) and the CSS variable system
+   defined in CLAUDE.md. */
+
+.ds-classical {
+  --etex-orange-primary: #f06d0c;
+  --etex-orange-secondary: #ffe7d9;
+
+  --color-bg: #ffffff;
+  --color-surface: #f6f6f6;
+  --color-text: #1c1e21;
+  --color-accent: var(--etex-orange-primary);
+  --color-accent-2: #d45e0a;
+  --color-divider: #00000024;
+
+  --color-neutral-100: #ffffff;
+  --color-neutral-200: #f6f6f6;
+  --color-neutral-300: #e4e4e4;
+  --color-neutral-400: #b3b3b3;
+  --color-neutral-500: #999999;
+  --color-neutral-600: #808080;
+  --color-neutral-700: #666666;
+  --color-neutral-800: #4d4d4d;
+  --color-neutral-900: #333333;
+
+  --color-accent-100: #fff5eb;
+  --color-accent-200: #ffe0c2;
+  --color-accent-300: #ffc68a;
+  --color-accent-400: #ffa44f;
+  --color-accent-500: var(--etex-orange-primary);
+  --color-accent-600: #d45e0a;
+  --color-accent-700: #b84e08;
+  --color-accent-800: #993f06;
+  --color-accent-900: #7a3105;
+
+  --color-accent-2-100: #faf6f3;
+  --color-accent-2-200: #efe5dd;
+  --color-accent-2-300: #dcc9bc;
+  --color-accent-2-400: #c4a997;
+  --color-accent-2-500: #a68872;
+  --color-accent-2-600: #886b57;
+  --color-accent-2-700: #6c5342;
+  --color-accent-2-800: #4f3c30;
+  --color-accent-2-900: #352820;
+
+  --font-heading: "Roboto", system-ui, -apple-system, sans-serif;
+  --font-heading-weight: 600;
+  --font-body: "Roboto", system-ui, -apple-system, sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
+
+  --chat-bg-shade-1: #ffffff;
+  --chat-bg-shade-2: #eeeeee;
+  --chat-bg-shade-3: #ffffff;
+  --chat-bg-shade-4: #d9d9d9;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-classical {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 400;
+  margin: 0;
+}
+
+.ds-classical h1,
+.ds-classical h2,
+.ds-classical h3,
+.ds-classical h4 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+}
+
+.ds-classical h1 { font-size: 38px; }
+.ds-classical h2 { font-size: 28px; }
+.ds-classical h3 { font-size: 22px; }
+.ds-classical h4 { font-size: 18px; }
+.ds-classical h5 { font-size: 15px; }
+.ds-classical h6 { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+.ds-classical h1,
+.ds-classical h2,
+.ds-classical h3,
+.ds-classical h4,
+.ds-classical h5,
+.ds-classical h6 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  line-height: 1.18; letter-spacing: -0.01em; margin: 0 0 var(--space-2);
+}
+
+.ds-classical p { margin: 0 0 var(--space-3); }
+.ds-classical a {
+  color: var(--color-accent); text-underline-offset: 2px;
+}
+.ds-classical a:hover { color: var(--color-accent-600); }
+
+.ds-classical img { display: block; max-width: 100%; }
+.ds-classical figure { margin: 0; }
+.ds-classical figcaption {
+  font-size: 11px; margin-top: var(--space-1);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.ds-classical .text-muted {
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+.ds-classical :focus { outline: none; }
+.ds-classical :focus-visible {
+  outline: 2px solid var(--color-accent); outline-offset: 2px;
+}
+.ds-classical ::selection {
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+.ds-classical .hr {
+  height: 1px; border: 0; margin: var(--space-4) 0;
+  background: var(--color-divider);
+}
+
+/* Buttons */
+.ds-classical .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none; user-select: none;
+  font-family: var(--font-body);
+  font-size: 13px; font-weight: 500; line-height: 1.2;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent; color: var(--color-text);
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.ds-classical .btn svg { display: block; }
+.ds-classical .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ds-classical .btn-primary {
+  color: #fff;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.ds-classical .btn-primary:hover {
+  background: var(--color-accent-600);
+  border-color: var(--color-accent-600);
+}
+.ds-classical .btn-primary:active {
+  background: var(--color-accent-700);
+  border-color: var(--color-accent-700);
+}
+
+.ds-classical .btn-secondary {
+  border-color: var(--color-divider);
+}
+.ds-classical .btn-secondary:hover {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+.ds-classical .btn-secondary:active {
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+
+.ds-classical .btn-ghost {
+  color: var(--color-accent); padding-inline: var(--space-1);
+}
+.ds-classical .btn-ghost:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.ds-classical .btn-ghost:active {
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.ds-classical .btn-icon {
+  padding: 4px; border: 0; border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.ds-classical .btn-icon:hover {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.ds-classical .btn-block { width: 100%; }
+
+/* Inputs */
+.ds-classical .field > label {
+  display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: var(--space-1);
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.ds-classical .input {
+  display: block; width: 100%;
+  font-family: var(--font-body); font-size: 13px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+.ds-classical .input::placeholder {
+  color: color-mix(in srgb, var(--color-text) 40%, transparent);
+}
+.ds-classical .input:hover { border-color: color-mix(in srgb, var(--color-text) 30%, transparent); }
+.ds-classical .input:focus-visible { border-color: var(--color-accent); outline: none; }
+.ds-classical textarea.input { resize: vertical; min-height: 60px; }
+
+.ds-classical .radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.ds-classical .radio input,
+.ds-classical .seg-opt input { accent-color: var(--color-accent); }
+.ds-classical .radio .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: color-mix(in srgb, var(--color-text) 24%, transparent);
+}
+
+/* Segmented control (theme toggle) */
+.ds-classical .seg {
+  display: inline-flex; border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.ds-classical .seg-opt {
+  padding: 3px 10px; font-size: 11px; cursor: pointer;
+  font-family: var(--font-body);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  border-right: 1px solid var(--color-divider);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.ds-classical .seg-opt:last-child { border-right: 0; }
+.ds-classical .seg-opt:has(input:checked) {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+/* Tags */
+.ds-classical .tag {
+  display: inline-flex; align-items: center;
+  font-size: 10px; padding: 2px 6px; border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.ds-classical .tag-neutral {
+  background: var(--color-neutral-200); color: var(--color-neutral-800);
+}
+.ds-classical .tag-outline {
+  border: 1px solid var(--color-accent); color: var(--color-accent);
+}
+
+/* Nav */
+.ds-classical .nav {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: 0 20px; height: 52px;
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-bg);
+}
+
+.ds-classical .nav a {
+  color: inherit; text-decoration: none; font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s var(--ease);
+}
+.ds-classical .nav a:hover,
+.ds-classical .nav a[aria-current='page'] {
+  color: var(--color-accent);
+}
+
+/* Table */
+.ds-classical .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ds-classical .table th {
+  text-align: left; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  padding: var(--space-2); border-bottom: 1px solid var(--color-divider);
+}
+.ds-classical .table td { padding: var(--space-2); border-bottom: 1px solid var(--color-divider); }
+
+/* Dialog / popup */
+.ds-classical .dialog {
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.ds-classical .dialog-header {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-divider);
+}
+.ds-classical .dialog-body { padding: var(--space-4); }
+.ds-classical .dialog-footer {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  display: flex; justify-content: flex-end; gap: var(--space-2);
+}
+.ds-classical .dialog-backdrop { position: absolute; }
+.ds-classical { position: relative; }
+
+/* app-layer token bridge */
+.ds-classical {
+  --app-accent-text: var(--color-accent-700);
+  --app-track: color-mix(in srgb, var(--color-text) 14%, transparent);
+  --app-tint: color-mix(in srgb, var(--color-text) 5%, transparent);
+  --app-tint-2: color-mix(in srgb, var(--color-text) 8%, transparent);
+}

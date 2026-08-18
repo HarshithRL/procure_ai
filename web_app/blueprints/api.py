@@ -9,6 +9,8 @@ Security:
 """
 
 import logging
+import uuid
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify, redirect, request
 
 from ..auth import get_current_user, get_forwarded_access_token
@@ -311,3 +313,201 @@ def auth_login():
     before requests reach this app. This route exists for consistency.
     """
     return redirect("/")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chat API — Sprint 1 stubs (no DB; replaced by real persistence in Sprint 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _utcnow_iso() -> str:
+    """ISO-8601 timestamp with Z suffix — matches project model convention."""
+    return datetime.now(timezone.utc).isoformat() + "Z"
+
+
+# Synthetic stub data — replaced by DB in Sprint 2
+_STUB_SESSIONS: list[dict] = [
+    {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "title": "Packaging supplier shortlist review",
+        "created_at": "2026-08-15T09:12:00.000000Z",
+        "message_count": 6,
+        "last_message": "Which vendors have ISO 14001 certification?",
+    },
+    {
+        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "title": "Logistics RFQ cost analysis",
+        "created_at": "2026-08-16T14:30:00.000000Z",
+        "message_count": 4,
+        "last_message": "Compare total landed cost across 3 vendors.",
+    },
+    {
+        "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+        "title": "EMEA raw materials benchmark",
+        "created_at": "2026-08-18T08:00:00.000000Z",
+        "message_count": 1,
+        "last_message": "Summarise price variance for Q3 2026.",
+    },
+]
+
+_STUB_MESSAGES: dict[str, list[dict]] = {
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890": [
+        {
+            "id": "msg-001",
+            "role": "user",
+            "content": "List all suppliers with active ISO 14001 certification.",
+            "timestamp": "2026-08-15T09:12:00.000000Z",
+        },
+        {
+            "id": "msg-002",
+            "role": "assistant",
+            "content": "Based on the uploaded vendor documents, three suppliers hold active ISO 14001 certification: **Vendor A** (valid until 2027-06), **Vendor B** (valid until 2026-12), and **Vendor C** (valid until 2028-03).",
+            "timestamp": "2026-08-15T09:12:04.000000Z",
+        },
+        {
+            "id": "msg-003",
+            "role": "user",
+            "content": "Which vendors have ISO 14001 certification?",
+            "timestamp": "2026-08-15T10:45:00.000000Z",
+        },
+        {
+            "id": "msg-004",
+            "role": "assistant",
+            "content": "How are you?",
+            "timestamp": "2026-08-15T10:45:01.000000Z",
+        },
+    ],
+    "b2c3d4e5-f6a7-8901-bcde-f12345678901": [
+        {
+            "id": "msg-101",
+            "role": "user",
+            "content": "Compare total landed cost across 3 vendors.",
+            "timestamp": "2026-08-16T14:30:00.000000Z",
+        },
+        {
+            "id": "msg-102",
+            "role": "assistant",
+            "content": "How are you?",
+            "timestamp": "2026-08-16T14:30:02.000000Z",
+        },
+    ],
+    "c3d4e5f6-a7b8-9012-cdef-123456789012": [
+        {
+            "id": "msg-201",
+            "role": "user",
+            "content": "Summarise price variance for Q3 2026.",
+            "timestamp": "2026-08-18T08:00:00.000000Z",
+        },
+        {
+            "id": "msg-202",
+            "role": "assistant",
+            "content": "How are you?",
+            "timestamp": "2026-08-18T08:00:03.000000Z",
+        },
+    ],
+}
+
+
+@api_bp.route("/chat/sessions", methods=["GET"])
+def list_chat_sessions():
+    """
+    List chat sessions for the current user.
+
+    Sprint 1: Returns hardcoded synthetic sessions (no DB).
+    Sprint 2: Replace with DB query filtered by current_user.email.
+
+    Returns:
+        JSON array: [{id, title, created_at, message_count, last_message}]
+    """
+    return jsonify(_STUB_SESSIONS)
+
+
+@api_bp.route("/chat/sessions/<session_id>", methods=["GET"])
+def get_chat_session(session_id: str):
+    """
+    Get all messages for a chat session.
+
+    Sprint 1: Returns hardcoded synthetic messages for known stub session IDs.
+    Unknown session IDs return 404.
+
+    Args:
+        session_id: UUID string of the session
+
+    Returns:
+        JSON: {session_id, title, messages: [{id, role, content, timestamp}]}
+    """
+    # Look up session metadata from stub list
+    session_meta = next(
+        (s for s in _STUB_SESSIONS if s["id"] == session_id), None
+    )
+    if session_meta is None:
+        return jsonify({"error": "Session not found"}), 404
+
+    messages = _STUB_MESSAGES.get(session_id, [])
+    return jsonify({
+        "session_id": session_id,
+        "title": session_meta["title"],
+        "messages": messages,
+    })
+
+
+@api_bp.route("/chat/sessions/<session_id>/message", methods=["POST"])
+def send_chat_message(session_id: str):
+    """
+    Send a user message and receive an assistant reply.
+
+    Sprint 1: Always replies "How are you?" (fixed stub).
+    Sprint 2: Wire to LangChain agent with session memory.
+
+    Request body: {"content": "<user message>"}
+    Returns:
+        JSON: {id, role, content, timestamp}
+        400 if content is missing or empty
+        404 if session_id is not a known stub session
+    """
+    # Validate session exists
+    session_meta = next(
+        (s for s in _STUB_SESSIONS if s["id"] == session_id), None
+    )
+    if session_meta is None:
+        return jsonify({"error": "Session not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    content = (data.get("content") or "").strip()
+    if not content:
+        return jsonify({"error": "content is required and must be non-empty"}), 400
+
+    logger.info("Chat message received for session %s (stub reply)", session_id)
+
+    reply = {
+        "id": str(uuid.uuid4()),
+        "role": "assistant",
+        "content": "How are you?",
+        "timestamp": _utcnow_iso(),
+    }
+    return jsonify(reply), 200
+
+
+@api_bp.route("/chat/sessions", methods=["POST"])
+def create_chat_session():
+    """
+    Create a new chat session.
+
+    Sprint 1: Returns a synthetic session with a generated UUID (no DB).
+    Sprint 2: Persist to ChatSession table with owner_email = current_user.email.
+
+    Request body: {"title": "<optional title>"}
+    Returns:
+        JSON: {id, title, created_at, message_count}
+        201 Created
+    """
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip() or "New conversation"
+
+    new_session = {
+        "id": str(uuid.uuid4()),
+        "title": title,
+        "created_at": _utcnow_iso(),
+        "message_count": 0,
+    }
+    logger.info("Created stub chat session: %s — '%s'", new_session["id"], title)
+    return jsonify(new_session), 201

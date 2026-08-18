@@ -1,0 +1,61 @@
+{# Fixed left rail: brand, primary nav, theme toggle, user menu.
+   Collapsible: toggle button in sidebar-brand; collapses to 56px icon-only mode.
+   Partials (_nav_brand / _theme_toggle / _user_menu) are included as-is;
+   layout and styling are scoped via css/sidebar.css under .app-shell .sidebar
+   so they never touch the chat panel's .sidebar-nav in main.css. #}
+<aside class="sidebar" id="app-sidebar" aria-label="Primary navigation">
+    <div class="sidebar-brand">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-expanded="true" aria-label="Toggle sidebar">
+            {# Chevron icon pointing left (when expanded) - rotates 180deg when collapsed #}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <span class="sidebar-brand-content">
+            {% include "_nav_brand.html" %}
+        </span>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <nav class="sidebar-nav" aria-label="Sections">
+        <a href="/"
+           title="Dashboard"
+           {% if request.path == '/' %}class="is-active" aria-current="page"{% endif %}>
+            {# Dashboard grid icon #}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            <span class="sidebar-link-text">Dashboard</span>
+        </a>
+        <a href="/chat"
+           title="Chat"
+           {% if request.path.startswith('/chat') %}class="is-active" aria-current="page"{% endif %}>
+            {# Chat bubble icon #}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="sidebar-link-text">Chat</span>
+        </a>
+        <a href="/profile"
+           title="Profile"
+           {% if request.path.startswith('/profile') %}class="is-active" aria-current="page"{% endif %}>
+            {# Profile person icon #}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+            </svg>
+            <span class="sidebar-link-text">Profile</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-spacer" aria-hidden="true"></div>
+
+    <div class="sidebar-footer">
+        {% include "_theme_toggle.html" %}
+        <hr class="sidebar-divider">
+        <div class="sidebar-footer-user">
+            {% include "_user_menu.html" %}
+        </div>
+    </div>
+</aside>

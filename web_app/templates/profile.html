@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Procura AI{% endblock %}
+
+{% block content %}
+<div class="screen screen--scroll">
+    <div class="app-scroll" style="padding:28px 40px 48px;flex:1;min-height:0">
+        <div class="app-faint" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px">Profile</div>
+        <div id="profile-identity" style="display:flex;align-items:center;gap:18px;margin-bottom:8px">
+            <div id="profile-avatar" class="user-avatar" style="width:52px;height:52px;font-size:16px">?</div>
+            <div style="min-width:0;flex:1">
+                <h2 id="profile-name" style="margin:0">Loading…</h2>
+                <p id="profile-email" class="app-muted" style="margin:4px 0 0;font-size:13px"></p>
+            </div>
+            <span id="profile-active" class="tag tag-neutral hidden">Active</span>
+            <button id="profile-refresh" class="btn btn-secondary" style="font-size:12px" type="button">Refresh assets</button>
+        </div>
+        <hr class="hr">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
+            <div class="app-tint" style="padding:16px 18px;border:1px solid var(--color-divider);border-radius:var(--radius-md)">
+                <h6 style="margin:0 0 10px">Identity</h6>
+                <div id="profile-meta" class="app-num" style="font-size:12.5px;line-height:1.85"></div>
+            </div>
+            <div class="app-tint" style="padding:16px 18px;border:1px solid var(--color-divider);border-radius:var(--radius-md)">
+                <h6 style="margin:0 0 10px">Groups &amp; entitlements</h6>
+                <div id="profile-groups" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+            </div>
+        </div>
+
+        <h3 style="margin:8px 0 14px;font-family:var(--font-heading)">Databricks workspace assets</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <section class="profile-section" data-section="compute">
+                <div class="app-div-b" style="display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:10px">
+                    <h6 style="margin:0;flex:1">Compute</h6>
+                    <span class="profile-count app-faint app-num" style="font-size:11px"></span>
+                </div>
+                <div class="profile-body app-faint" style="font-size:12.5px">Loading…</div>
+            </section>
+            <section class="profile-section" data-section="ai">
+                <div class="app-div-b" style="display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:10px">
+                    <h6 style="margin:0;flex:1">AI endpoints</h6>
+                    <span class="profile-count app-faint app-num" style="font-size:11px"></span>
+                </div>
+                <div class="profile-body app-faint" style="font-size:12.5px">Loading…</div>
+            </section>
+            <section class="profile-section" data-section="data">
+                <div class="app-div-b" style="display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:10px">
+                    <h6 style="margin:0;flex:1">Unity Catalog</h6>
+                    <span class="profile-count app-faint app-num" style="font-size:11px"></span>
+                </div>
+                <div class="profile-body app-faint" style="font-size:12.5px">Loading…</div>
+            </section>
+            <section class="profile-section" data-section="apps">
+                <div class="app-div-b" style="display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:10px">
+                    <h6 style="margin:0;flex:1">Databricks Apps</h6>
+                    <span class="profile-count app-faint app-num" style="font-size:11px"></span>
+                </div>
+                <div class="profile-body app-faint" style="font-size:12.5px">Loading…</div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}
