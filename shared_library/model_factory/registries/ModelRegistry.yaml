@@ -17,7 +17,11 @@ models:
     billing_tier: pay-per-token
     status: generally_available
     temperature_supported: false
-    reasoning_mode: thinking
+    # Opus 4.7+ rejects the legacy {"type":"enabled","budget_tokens":N} form:
+    #   '"thinking.type.enabled" is not supported for this model. Use
+    #    "thinking.type.adaptive" and "output_config.effort"'
+    # See family_adapter.build_request_params().
+    reasoning_mode: thinking_adaptive
     swap_safe_for_agent: true
     routable: true
     capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]
@@ -35,7 +39,8 @@ models:
     billing_tier: pay-per-token
     status: generally_available
     temperature_supported: false
-    reasoning_mode: thinking
+    # Same adaptive-thinking contract as Opus 4.7 (see note above).
+    reasoning_mode: thinking_adaptive
     swap_safe_for_agent: true
     routable: true
     capabilities: [text_input, text_output, image_input, tool_calling, structured_output, extended_thinking, streaming]

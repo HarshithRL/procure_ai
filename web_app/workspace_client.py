@@ -19,20 +19,81 @@ from databricks.sdk import WorkspaceClient
 
 
 @lru_cache(maxsize=4)
-def _get_cached_local_client(host: str) -> WorkspaceClient:
+def _get_cached_local_client(
+    host: Optional[str] = None,
+    profile: Optional[str] = None,
+) -> WorkspaceClient:
     """
-    Create a cached WorkspaceClient for local development using interactive browser auth.
-    
-    The @lru_cache decorator ensures that repeated calls to get_workspace_client_for_request()
-    during local dev don't trigger multiple browser auth flows — the client is reused.
-    
+    Create a cached WorkspaceClient for local development.
+
+    Resolution order:
+      1. **CLI profile** — if `profile` is given (from DATABRICKS_CONFIG_PROFILE,
+         or the `config_profile` key in ops/config/dev.yml), use the OAuth
+         credentials already cached by `databricks auth login`. Non-interactive.
+      2. **Interactive browser** — last resort; opens a browser tab the first
+         time, then reuses ~/.databricks/token-cache.json.
+
+    The @lru_cache decorator ensures repeated calls during local dev don't
+    trigger multiple auth flows — the client is reused per (host, profile).
+
     Args:
         host: Databricks workspace hostname (e.g., https://adb-xxx.azuredatabricks.net/)
-    
+        profile: ~/.databrickscfg profile name, or None to skip profile auth
+
     Returns:
-        WorkspaceClient: Authenticated client using external-browser auth
+        WorkspaceClient: Authenticated client
     """
+    if profile:
+        # Let the SDK read host from the profile if none was supplied.
+        kwargs = {"profile": profile}
+        if host:
+            kwargs["host"] = host
+        return WorkspaceClient(**kwargs)
+
     return WorkspaceClient(host=host, auth_type="external-browser")
+
+
+def _local_profile() -> Optional[str]:
+    """
+    Resolve the local-dev CLI profile name.
+
+    Prefers the DATABRICKS_CONFIG_PROFILE env var, then falls back to the
+    `databricks.config_profile` key in ops/config/{ENV_PROFILE}.yml so that a
+    developer needs no exported env vars at all.
+
+    Returns None if neither is set (caller then falls back to browser auth).
+    """
+    env_profile = os.getenv("DATABRICKS_CONFIG_PROFILE")
+    if env_profile:
+        return env_profile
+
+    try:
+        from shared_library.databricks_connectors.utils.env_reader import EnvironmentConfig
+
+        return EnvironmentConfig().config_profile
+    except Exception:
+        # Config layer unavailable (e.g. trimmed deployment) — not fatal.
+        return None
+
+
+def _resolve_host() -> Optional[str]:
+    """
+    Resolve the Databricks workspace host.
+
+    DATABRICKS_HOST (injected by Databricks Apps in production) wins; locally
+    we fall back to ops/config/{ENV_PROFILE}.yml so no env var is required.
+    Returning None lets the SDK resolve the host from the CLI profile itself.
+    """
+    env_host = os.getenv("DATABRICKS_HOST")
+    if env_host:
+        return env_host
+
+    try:
+        from shared_library.databricks_connectors.utils.env_reader import EnvironmentConfig
+
+        return EnvironmentConfig().host
+    except Exception:
+        return None
 
 
 def get_workspace_client_for_request(
@@ -94,7 +155,7 @@ def get_workspace_client_for_request(
             ws.jobs.list()  # System-level query
             return response
     """
-    host = host or os.getenv("DATABRICKS_HOST")
+    host = host or _resolve_host()
 
     # 1. User Authorization (On-Behalf-Of via forwarded header)
     if request_headers and "x-forwarded-access-token" in request_headers:
@@ -110,8 +171,8 @@ def get_workspace_client_for_request(
             auth_type="oauth-m2m",
         )
 
-    # 3. Local Development (Interactive U2M with caching)
-    return _get_cached_local_client(host)
+    # 3. Local Development (CLI profile U2M, else interactive browser; cached)
+    return _get_cached_local_client(host, _local_profile())
 
 
 _APP_CLIENT: Optional[WorkspaceClient] = None
@@ -119,8 +180,8 @@ _APP_CLIENT: Optional[WorkspaceClient] = None
 
 def _init_app_client() -> WorkspaceClient:
     """Initialize the module-level service principal client."""
-    host = os.getenv("DATABRICKS_HOST")
-    
+    host = _resolve_host()
+
     if os.getenv("DATABRICKS_CLIENT_ID") and os.getenv("DATABRICKS_CLIENT_SECRET"):
         return WorkspaceClient(
             host=host,
@@ -128,9 +189,9 @@ def _init_app_client() -> WorkspaceClient:
             client_secret=os.environ["DATABRICKS_CLIENT_SECRET"],
             auth_type="oauth-m2m",
         )
-    
+
     # Fallback to local dev (should not happen in production)
-    return _get_cached_local_client(host)
+    return _get_cached_local_client(host, _local_profile())
 
 
 def get_app_client() -> WorkspaceClient:

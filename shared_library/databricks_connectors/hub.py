@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-import logging
+from shared_library.global_logger_hub import bootstrap, get_agent_logger
+
+bootstrap()
 import threading
 from typing import Any, Dict, Optional
 
@@ -19,7 +21,7 @@ from shared_library.databricks_connectors.utils.env_reader import EnvironmentCon
 from shared_library.databricks_connectors.utils.exceptions import AuthError, IdentityError, RestError
 from shared_library.databricks_connectors.utils.retry import execute_with_full_jitter
 
-logger = logging.getLogger("databricks_connectors.hub")
+logger = get_agent_logger("databricks_connectors.hub")
 
 _HUB_LOCK = threading.Lock()
 _DEFAULT_HUB: Optional["ConnectorHub"] = None

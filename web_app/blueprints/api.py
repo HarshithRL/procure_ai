@@ -8,7 +8,9 @@ Security:
 - Live workspace assets fetched via OBO token (x-forwarded-access-token)
 """
 
-import logging
+from shared_library.global_logger_hub import bootstrap, get_app_logger
+
+bootstrap()
 import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, redirect, request
@@ -18,7 +20,7 @@ from ..database import get_session
 from ..models import Project, User
 from ..workspace_client import get_workspace_client_for_request
 
-logger = logging.getLogger(__name__)
+logger = get_app_logger(__name__)
 api_bp = Blueprint("api", __name__)
 
 

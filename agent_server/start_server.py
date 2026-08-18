@@ -6,31 +6,28 @@ Serves /api/v1/agents/* and /api/v1/identity/* endpoints.
 
 from __future__ import annotations
 
-import asyncio
 import json
-import logging
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import AsyncGenerator
 
 import uvicorn
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
+from shared_library.global_logger_hub import bootstrap, get_agent_logger, api_turn
 from agent_server.agent import close_graph, get_agent_graph
 from agent_server.core.config import get_config
 from agent_server.schemas import AgentState, StreamEvent, StreamRequest
 
-logger = logging.getLogger(__name__)
+bootstrap()
+logger = get_agent_logger(__name__)
 
 
 async def _bootstrap_mlflow() -> None:
     """Bootstrap MLflow tracing and Prompt Registry sync."""
     try:
         import mlflow
-        from shared_library.global_logger_hub import configure_root_logging
-
-        configure_root_logging()
 
         config = get_config()
         mlflow.set_tracking_uri(config.mlflow_tracking_uri)
@@ -49,7 +46,7 @@ async def _bootstrap_mlflow() -> None:
 async def _warm_graph() -> None:
     """Warm up the agent graph on startup."""
     try:
-        graph = await get_agent_graph()
+        await get_agent_graph()
         logger.info("Agent graph warmed up")
     except Exception as e:
         logger.warning(f"Graph warm-up error: {e}")
@@ -163,6 +160,10 @@ async def _stream_graph_events(
         "thread_id": thread_id,
         "user_id": user_id,
         "session_id": session_uuid,
+        # Drives per-request LLM selection in brain_node — this is what the
+        # chat UI's model picker actually controls.
+        "profile": profile,
+        "model": model,
     }
 
     config = {
@@ -223,14 +224,20 @@ async def stream_agent(request: Request, body: StreamRequest) -> StreamingRespon
         f"Stream request | thread={body.thread_id} | user={user_id} | profile={body.profile}"
     )
 
+    # Wrap streaming in api_turn flow tracer
+    async def _wrapped_stream():
+        with api_turn(thread_id=body.thread_id, endpoint="stream_agent"):
+            async for chunk in _stream_graph_events(
+                thread_id=body.thread_id,
+                user_id=user_id,
+                message=body.message,
+                profile=body.profile,
+                model=body.model,
+            ):
+                yield chunk
+
     return StreamingResponse(
-        _stream_graph_events(
-            thread_id=body.thread_id,
-            user_id=user_id,
-            message=body.message,
-            profile=body.profile,
-            model=body.model,
-        ),
+        _wrapped_stream(),
         media_type="text/event-stream",
     )
 
@@ -240,7 +247,9 @@ async def invoke_agent(request: Request, body: StreamRequest) -> dict:
     """Synchronous agent invocation (for testing; prefer /stream for production)."""
     user_id = request.headers.get("X-Forwarded-Email", body.user_id or "unknown@example.com")
 
-    logger.info(f"Invoke request | thread={body.thread_id} | user={user_id}")
+    logger.info(
+        f"Invoke request | thread={body.thread_id} | user={user_id} | profile={body.profile}"
+    )
 
     graph = await get_agent_graph()
 
@@ -250,6 +259,9 @@ async def invoke_agent(request: Request, body: StreamRequest) -> dict:
         "messages": [HumanMessage(content=body.message)],
         "thread_id": body.thread_id,
         "user_id": user_id,
+        # Same per-request LLM selection as the streaming path.
+        "profile": body.profile,
+        "model": body.model,
     }
 
     config = {

@@ -233,11 +233,24 @@ def build_request_params(
     extra_body: Dict[str, Any] = {}
     mode = policy.reasoning_extra_body
     if mode == "thinking" and enable_thinking:
-        budget = 8000
-        max_tok = out.get("max_tokens")
-        if isinstance(max_tok, int) and max_tok > 1:
-            budget = min(8000, max_tok - 1)
-        extra_body["thinking"] = {"type": "enabled", "budget_tokens": budget}
+        # Newer Claude models (Opus 4.7+) reject the legacy
+        # {"type": "enabled", "budget_tokens": N} shape:
+        #   "thinking.type.enabled" is not supported for this model.
+        #   Use "thinking.type.adaptive" and "output_config.effort".
+        # Models opt in via `reasoning_mode: thinking_adaptive` in
+        # ModelRegistry.yaml; everything else keeps the budgeted form.
+        if policy.reasoning_mode == "thinking_adaptive":
+            effort = reasoning_effort or "high"
+            if effort not in {"low", "medium", "high"}:
+                effort = "high"
+            extra_body["thinking"] = {"type": "adaptive"}
+            extra_body["output_config"] = {"effort": effort}
+        else:
+            budget = 8000
+            max_tok = out.get("max_tokens")
+            if isinstance(max_tok, int) and max_tok > 1:
+                budget = min(8000, max_tok - 1)
+            extra_body["thinking"] = {"type": "enabled", "budget_tokens": budget}
     elif mode == "reasoning_effort":
         effort = reasoning_effort or "low"
         if effort not in {"low", "medium", "high", "minimal"}:

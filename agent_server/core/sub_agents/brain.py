@@ -6,22 +6,47 @@ Ported to procurement domain with minimal tools (Sprint 1).
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Optional
 
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from typing_extensions import NotRequired, TypedDict
 
+from shared_library.global_logger_hub import bootstrap, get_agent_logger
 from agent_server.core.context import get_brain_system_prompt
 from agent_server.core.models.mock import MockChatModel
 from shared_library.model_factory import resolve_chat_model
 from shared_library.databricks_connectors.utils.exceptions import AuthError
 from shared_library.model_factory.exceptions import AuthBridgeError
 
-logger = logging.getLogger(__name__)
+bootstrap()
+logger = get_agent_logger(__name__)
 
 BRAIN_AGENT_ID = "brain"
+
+#: Profile used when the caller supplies nothing. Must exist in
+#: shared_library/model_factory/registries/ProfileRegistry.yaml.
+DEFAULT_PROFILE = "balanced"
+
+#: Profiles the chat UI is allowed to select (model_picker.html mode chips).
+#: Anything else falls back to DEFAULT_PROFILE rather than erroring, so a stale
+#: or tampered client cannot take the agent down.
+ALLOWED_PROFILES = frozenset({"fast_chat", "balanced", "deep_reasoning"})
+
+
+def normalize_profile(profile: Optional[str]) -> str:
+    """Clamp a client-supplied profile name to a known, allowed profile."""
+    if not profile:
+        return DEFAULT_PROFILE
+    candidate = str(profile).strip().lower()
+    if candidate in ALLOWED_PROFILES:
+        return candidate
+    logger.warning(
+        "Unknown model profile %r requested; falling back to %r",
+        profile,
+        DEFAULT_PROFILE,
+    )
+    return DEFAULT_PROFILE
 
 
 class BrainAgentState(TypedDict):
@@ -33,20 +58,31 @@ class BrainAgentState(TypedDict):
     session_id: NotRequired[Optional[str]]
 
 
-def build_brain_agent(model: Optional[BaseChatModel] = None) -> Any:
+def build_brain_agent(
+    model: Optional[BaseChatModel] = None,
+    profile: Optional[str] = None,
+) -> Any:
     """Build and compile the Brain agent using LangChain create_agent.
 
     Args:
-        model: Chat model. Defaults to model_factory resolution of "balanced" profile.
-               If Databricks auth unavailable, falls back to MockChatModel.
+        model: Explicit chat model. If given, `profile` is ignored.
+        profile: model_factory profile name (fast_chat | balanced |
+                 deep_reasoning). Defaults to DEFAULT_PROFILE. This is what the
+                 chat UI's model picker selects.
+                 If Databricks auth unavailable, falls back to MockChatModel.
 
     Returns:
         Compiled agent graph (CompiledStateGraph).
     """
+    resolved_profile = normalize_profile(profile)
+
     if model is None:
         try:
-            model = resolve_chat_model(profile="balanced")
-            logger.info("Brain agent resolved model via model_factory (profile=balanced)")
+            model = resolve_chat_model(profile=resolved_profile)
+            logger.info(
+                "Brain agent resolved model via model_factory (profile=%s)",
+                resolved_profile,
+            )
         except (AuthError, AuthBridgeError, ValueError) as exc:
             # Databricks auth unavailable. In local dev, this is expected without credentials.
             # Options to fix:
@@ -97,55 +133,67 @@ def build_brain_agent(model: Optional[BaseChatModel] = None) -> Any:
         name=BRAIN_AGENT_ID,
     )
 
-    logger.info(f"Brain agent compiled | tools={len(tools)} | model_type={type(model).__name__}")
+    logger.info(
+        "Brain agent compiled | profile=%s | tools=%d | model_type=%s",
+        resolved_profile,
+        len(tools),
+        type(model).__name__,
+    )
     return agent
 
 
-# Singleton with cooldown (follows PDF Parser pattern)
-_brain_instance: Optional[Any] = None
-_brain_error: Optional[tuple[float, Exception]] = None
+# Per-profile instance cache with per-profile error cooldown.
+# Keyed by profile so the chat UI's model picker actually switches models
+# instead of every request reusing one hardcoded singleton.
+_brain_instances: dict[str, Any] = {}
+_brain_errors: dict[str, tuple[float, Exception]] = {}
 
 
-def get_brain(force_new: bool = False) -> Any:
-    """Get or create singleton brain agent.
+def get_brain(profile: Optional[str] = None, force_new: bool = False) -> Any:
+    """Get or create the brain agent for a given model profile.
 
-    On first construction failure, memoizes the error for 30 seconds
-    so repeated calls re-raise immediately rather than retrying.
+    On construction failure, memoizes the error for 30 seconds *for that
+    profile only*, so repeated calls re-raise immediately rather than
+    hammering Databricks auth — while a healthy profile stays usable.
 
     Args:
-        force_new: Ignore singleton; build a new instance.
+        profile: model_factory profile name. Defaults to DEFAULT_PROFILE.
+        force_new: Ignore the cache; build a fresh instance.
 
     Returns:
         Compiled brain agent graph.
     """
-    global _brain_instance, _brain_error
     import time
 
+    resolved_profile = normalize_profile(profile)
+
     if force_new:
-        return build_brain_agent()
+        return build_brain_agent(profile=resolved_profile)
 
-    if _brain_instance is not None:
-        return _brain_instance
+    cached = _brain_instances.get(resolved_profile)
+    if cached is not None:
+        return cached
 
-    # If we recently failed, re-raise within cooldown
-    if _brain_error is not None:
-        error_time, error = _brain_error
+    # If we recently failed for this profile, re-raise within cooldown
+    failure = _brain_errors.get(resolved_profile)
+    if failure is not None:
+        error_time, error = failure
         if time.time() - error_time < 30.0:
             raise error
         # Cooldown expired; forget and try again
-        _brain_error = None
+        _brain_errors.pop(resolved_profile, None)
 
     try:
-        _brain_instance = build_brain_agent()
-        return _brain_instance
+        instance = build_brain_agent(profile=resolved_profile)
+        _brain_instances[resolved_profile] = instance
+        return instance
     except Exception as e:
-        # Memoize failure with timestamp
-        _brain_error = (time.time(), e)
+        # Memoize failure with timestamp, scoped to this profile
+        _brain_errors[resolved_profile] = (time.time(), e)
         raise
 
 
 def reset_brain() -> None:
-    """Reset brain singleton (for testing)."""
-    global _brain_instance, _brain_error
-    _brain_instance = None
-    _brain_error = None
+    """Reset the brain cache (for testing)."""
+    _brain_instances.clear()
+    _brain_errors.clear()

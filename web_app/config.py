@@ -11,9 +11,16 @@ import os
 class DevelopmentConfig:
     DEBUG = True
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-    # Local development uses in-memory SQLite (avoids filesystem issues with uv on Windows)
-    # Override with DATABASE_URL env var if needed
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
+    # Local development uses a file-backed SQLite DB in the project root.
+    #
+    # Do NOT use "sqlite:///:memory:" here. SQLAlchemy backs in-memory SQLite
+    # with SingletonThreadPool, so every worker thread gets its own EMPTY
+    # database. create_all_tables() runs on the main thread, but the Flask dev
+    # server is threaded, so request threads fail with "no such table: users"
+    # as soon as get_current_user() runs.
+    #
+    # Override with the DATABASE_URL env var if needed.
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///procure_ai.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session cookie security (per auth.md: HttpOnly, SameSite=Lax)

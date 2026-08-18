@@ -3,19 +3,79 @@
 
 Spawns two subprocesses:
 1. FastAPI agent_server on port 8001 (uvicorn)
-2. Flask web_app on port $DATABRICKS_APP_PORT (gunicorn)
+2. Flask web_app on port $DATABRICKS_APP_PORT
+
+Web server selection is platform-aware:
+- POSIX (Databricks Apps, Docker, Linux/macOS dev): gunicorn
+- Windows: gunicorn cannot run (it imports `fcntl`, which does not exist on
+  Windows), so we fall back to waitress, and then to the werkzeug dev server.
 
 Coordinates graceful shutdown on SIGTERM (15-second window).
 """
 
 from __future__ import annotations
 
-import asyncio
+import importlib.util
 import os
 import signal
 import subprocess
 import sys
 import time
+
+IS_WINDOWS = os.name == "nt"
+
+
+def _module_available(name: str) -> bool:
+    """Return True if `name` can be imported without actually importing it."""
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def build_flask_command(flask_port: str, flask_workers: str) -> tuple[list[str], str]:
+    """Choose the WSGI server command for the current platform.
+
+    Returns:
+        (argv, human_readable_server_name)
+    """
+    if not IS_WINDOWS:
+        return (
+            [
+                "gunicorn",
+                "wsgi:app",
+                "-w",
+                flask_workers,
+                "-b",
+                f"0.0.0.0:{flask_port}",
+                "--timeout",
+                "60",
+                "--access-logfile",
+                "-",
+                "--error-logfile",
+                "-",
+            ],
+            f"gunicorn (workers={flask_workers})",
+        )
+
+    # Windows: gunicorn is not importable (no fcntl).
+    if _module_available("waitress"):
+        return (
+            [
+                sys.executable,
+                "-m",
+                "waitress",
+                f"--listen=0.0.0.0:{flask_port}",
+                "--threads=8",
+                "wsgi:app",
+            ],
+            "waitress (threads=8)",
+        )
+
+    # Last resort: werkzeug dev server via wsgi.py's __main__ block.
+    # It reads the port from DATABRICKS_APP_PORT, which main() exports below.
+    # Not production grade, but keeps local development unblocked.
+    return ([sys.executable, "wsgi.py"], "werkzeug dev server (waitress not installed)")
 
 
 def main():
@@ -24,8 +84,14 @@ def main():
     flask_port = os.getenv("DATABRICKS_APP_PORT", "8000")
     flask_workers = os.getenv("GUNICORN_WORKERS", "2")
 
+    flask_cmd, flask_server_name = build_flask_command(flask_port, flask_workers)
+
+    # Ensure the werkzeug fallback (and any child) sees the resolved port.
+    os.environ["DATABRICKS_APP_PORT"] = flask_port
+
     print("[launcher] Starting Procure AI dual-process server...")
-    print(f"[launcher] Flask will bind to 0.0.0.0:{flask_port} (workers={flask_workers})")
+    print(f"[launcher] Platform: {'Windows' if IS_WINDOWS else 'POSIX'}")
+    print(f"[launcher] Flask will bind to 0.0.0.0:{flask_port} via {flask_server_name}")
     print("[launcher] FastAPI will bind to 0.0.0.0:8001")
 
     # Start FastAPI server (uvicorn)
@@ -48,24 +114,9 @@ def main():
     # Give FastAPI time to start
     time.sleep(2)
 
-    # Start Flask server (gunicorn)
+    # Start Flask server (platform-appropriate WSGI server, see build_flask_command)
     # Use wsgi:app — wsgi.py is at project root with module-level app object
-    flask_proc = subprocess.Popen(
-        [
-            "gunicorn",
-            "wsgi:app",
-            "-w",
-            flask_workers,
-            "-b",
-            f"0.0.0.0:{flask_port}",
-            "--timeout",
-            "60",
-            "--access-logfile",
-            "-",
-            "--error-logfile",
-            "-",
-        ],
-    )
+    flask_proc = subprocess.Popen(flask_cmd)
 
     print("[launcher] Both servers started. Press Ctrl+C to stop.")
 

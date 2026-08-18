@@ -10,14 +10,16 @@ This function is retained for database cleanup and maintenance.
 MULTI-WORKER SAFETY: Uses a file lock to ensure only one gunicorn worker performs initialization.
 """
 
-import logging
+from shared_library.global_logger_hub import bootstrap, get_app_logger
+
+bootstrap()
 import os
 import tempfile
 from pathlib import Path
 
 from .models import Project, User
 
-logger = logging.getLogger(__name__)
+logger = get_app_logger(__name__)
 
 # Seedable only once per process — file lock to coordinate across gunicorn workers
 _SEED_LOCK_FILE = Path(tempfile.gettempdir()) / "procure_ai_seed.lock"

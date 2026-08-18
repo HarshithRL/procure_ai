@@ -6,56 +6,76 @@ Sprint 1: Single brain node (future: intake, clarification, document nodes).
 
 from __future__ import annotations
 
-import asyncio
-import logging
 from pathlib import Path
 from typing import Any, Literal
 
 import aiosqlite
-from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
 
-from agent_server.core.sub_agents.brain import get_brain
+from shared_library.global_logger_hub import bootstrap, get_agent_logger, graph_turn
+from agent_server.core.sub_agents.brain import (
+    DEFAULT_PROFILE,
+    get_brain,
+    normalize_profile,
+)
 from agent_server.schemas import AgentState
 
-logger = logging.getLogger(__name__)
+bootstrap()
+logger = get_agent_logger(__name__)
 
 GRAPH_ID = "procure_orchestrator"
 BRAIN_AGENT_ID = "brain"
 
 
-async def brain_node(state: AgentState) -> dict[str, Any]:
+async def brain_node(state: AgentState, config: Any = None) -> dict[str, Any]:
     """Brain agent node — primary conversational intelligence.
 
-    Routes user message through Brain agent (LangChain create_agent).
-    Returns updated messages.
+    Selects the LLM per request from `state["profile"]` (set by the chat UI's
+    model picker), then delegates to the matching compiled brain subgraph.
+
+    This node MUST stay registered as the graph's brain node. Registering the
+    compiled brain directly (``graph.add_node(BRAIN_AGENT_ID, get_brain())``)
+    binds one hardcoded model for the process lifetime and silently ignores the
+    user's model selection.
+
+    Astream_events propagation: we call `astream()` on the inner agent rather
+    than `ainvoke()`, so token-level `on_chat_model_stream` events still bubble
+    up to the SSE endpoint.
     """
-    logger.info(f"[NODE] brain | start | thread={state.get('thread_id')}")
+    profile = normalize_profile(state.get("profile"))
+    thread_id = state.get("thread_id", "unknown")
+    
+    with graph_turn(thread_id=thread_id, node="brain_node"):
+        logger.info(f"brain | profile={profile}")
+        try:
+            brain = get_brain(profile=profile)
 
-    try:
-        brain = get_brain()
-        config = {
-            "configurable": {
-                "thread_id": state.get("thread_id", "unknown"),
+            inner_config = {
+                "configurable": {
+                    "thread_id": thread_id,
+                    "user_id": state.get("user_id"),
+                }
             }
-        }
-        # Invoke brain synchronously (streaming version handles async)
-        result = brain.invoke({"messages": state.get("messages", [])}, config=config)
-        messages = result.get("messages", [])
-        logger.info(f"[NODE] brain | complete | message_count={len(messages)}")
-        return {"messages": messages}
-    except Exception as exc:
-        logger.exception(f"[NODE] brain | failed | {exc}")
-        from langchain_core.messages import AIMessage
 
-        return {
-            "messages": [
-                AIMessage(
-                    content=f"Brain agent error: {type(exc).__name__}: {exc}"
-                )
-            ]
-        }
+            result = await brain.ainvoke(
+                {"messages": state.get("messages", [])},
+                config=inner_config,
+            )
+            messages = result.get("messages", [])
+            logger.info(f"brain | complete | message_count={len(messages)}")
+            return {"messages": messages}
+        except Exception as exc:
+            logger.exception(f"brain | failed | {exc}")
+            from langchain_core.messages import AIMessage
+
+            return {
+                "messages": [
+                    AIMessage(
+                        content=f"Brain agent error: {type(exc).__name__}: {exc}"
+                    )
+                ]
+            }
 
 
 def route_after_start(state: AgentState) -> Literal["brain", END]:
@@ -88,8 +108,15 @@ async def build_agent_graph(
     checkpointer = AsyncSqliteSaver(conn)
     await checkpointer.setup()
 
-    # Get the brain agent (or use provided executive_graph for testing)
-    inner = executive_graph if executive_graph is not None else get_brain()
+    # Register brain_node (a per-request dispatcher), NOT a pre-built brain.
+    # Tests may still inject a compiled graph via executive_graph.
+    inner = executive_graph if executive_graph is not None else brain_node
+
+    if executive_graph is None:
+        # Warm the default profile so /health's graph_ready still proves that
+        # Databricks auth + model resolution actually work. Failures propagate,
+        # matching the previous build-time behaviour.
+        get_brain(profile=DEFAULT_PROFILE)
 
     # Build the graph
     graph = StateGraph(AgentState)

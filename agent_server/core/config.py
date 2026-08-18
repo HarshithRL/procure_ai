@@ -14,14 +14,62 @@ from typing import Optional
 import yaml
 
 
+def _ops_config():
+    """Load the shared ops/config/{ENV_PROFILE}.yml view, or None if unavailable."""
+    try:
+        from shared_library.databricks_connectors.utils.env_reader import (
+            EnvironmentConfig as OpsEnvironmentConfig,
+        )
+
+        return OpsEnvironmentConfig()
+    except Exception:
+        return None
+
+
+def resolve_workspace_host() -> str:
+    """Resolve the Databricks workspace host.
+
+    Priority: DATABRICKS_HOST env (injected by Databricks Apps) →
+    ops/config/{ENV_PROFILE}.yml `databricks.host` → empty string.
+
+    Returns "" rather than a localhost placeholder when nothing is configured:
+    a bogus host silently misdirects auth and disables MLflow tracing, whereas
+    an empty value makes the missing configuration obvious.
+    """
+    env_host = os.getenv("DATABRICKS_HOST")
+    if env_host:
+        return env_host
+
+    ops = _ops_config()
+    return (ops.host if ops and ops.host else "") or ""
+
+
+def resolve_config_profile() -> str:
+    """Resolve the ~/.databrickscfg profile name for local U2M auth.
+
+    Priority: DATABRICKS_CONFIG_PROFILE (what the SDK and databricks_connectors
+    actually honour) → legacy DATABRICKS_PROFILE → ops/config yml
+    `databricks.config_profile` → "DEFAULT".
+    """
+    for var in ("DATABRICKS_CONFIG_PROFILE", "DATABRICKS_PROFILE"):
+        value = os.getenv(var)
+        if value:
+            return value
+
+    ops = _ops_config()
+    if ops and ops.config_profile:
+        return ops.config_profile
+    return "DEFAULT"
+
+
 @dataclass(frozen=True)
 class EnvironmentConfig:
     """Immutable environment configuration."""
 
     # Databricks workspace
-    host: str = field(default_factory=lambda: os.getenv("DATABRICKS_HOST", "http://localhost:8001"))
+    host: str = field(default_factory=resolve_workspace_host)
     token: Optional[str] = field(default_factory=lambda: os.getenv("DATABRICKS_TOKEN", None))
-    profile: str = field(default_factory=lambda: os.getenv("DATABRICKS_PROFILE", "DEFAULT"))
+    profile: str = field(default_factory=resolve_config_profile)
 
     # LLM & model routing
     llm_profile: str = field(default_factory=lambda: os.getenv("LLM_PROFILE", "balanced"))
@@ -36,12 +84,13 @@ class EnvironmentConfig:
     )
 
     # Observability
-    # Tracking URI: on Databricks (DATABRICKS_HOST set) default to the managed
-    # tracking server; locally default to empty so tracing is skipped rather than
-    # blocking on a 127.0.0.1:5000 server that does not exist.
+    # Tracking URI: whenever a real workspace host is resolvable (env var in
+    # production, ops/config yml locally) default to the managed tracking
+    # server. Otherwise default to empty so tracing is skipped rather than
+    # falling back to the deprecated local ./mlruns file store.
     mlflow_tracking_uri: str = field(
         default_factory=lambda: os.getenv("MLFLOW_TRACKING_URI")
-        or ("databricks" if os.getenv("DATABRICKS_HOST") else "")
+        or ("databricks" if resolve_workspace_host() else "")
     )
     # Databricks requires experiment names to be absolute workspace paths.
     mlflow_experiment: str = field(
@@ -87,9 +136,13 @@ def load_config(config_path: Optional[Path | str] = None) -> EnvironmentConfig:
         with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
             # Merge with EnvironmentConfig, preferring YAML values
-            host = data.get("databricks", {}).get("host") or os.getenv("DATABRICKS_HOST", "http://localhost:8001")
+            host = data.get("databricks", {}).get("host") or resolve_workspace_host()
             token = data.get("databricks", {}).get("token") or os.getenv("DATABRICKS_TOKEN")
-            profile = data.get("databricks", {}).get("profile") or os.getenv("DATABRICKS_PROFILE", "DEFAULT")
+            profile = (
+                data.get("databricks", {}).get("config_profile")
+                or data.get("databricks", {}).get("profile")
+                or resolve_config_profile()
+            )
             llm_profile = data.get("llm", {}).get("profile") or os.getenv("LLM_PROFILE", "balanced")
             llm_model = data.get("llm", {}).get("model") or os.getenv("LLM_MODEL")
 

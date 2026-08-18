@@ -84,10 +84,12 @@ def _message_text(response: Any) -> str:
     return str(content)
 
 
-import logging
+from shared_library.global_logger_hub import bootstrap, get_agent_logger
+
+bootstrap()
 import time
 
-logger = logging.getLogger("model_factory.invoke")
+logger = get_agent_logger("model_factory.invoke")
 
 
 def invoke_model(

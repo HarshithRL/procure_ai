@@ -7,13 +7,15 @@ Passes X-Forwarded-* headers through untouched for SSO auth.
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any, Generator
 
 import httpx
 from flask import Blueprint, Response, request, stream_with_context
 
-logger = logging.getLogger(__name__)
+from shared_library.global_logger_hub import bootstrap, get_app_logger, set_request_id
+
+bootstrap()
+logger = get_app_logger(__name__)
 
 bff_bp = Blueprint("bff", __name__, url_prefix="/bff")
 
@@ -42,11 +44,28 @@ def _build_request_headers() -> dict[str, str]:
     return headers
 
 
-def _stream_response(httpx_response: httpx.Response) -> Generator[bytes, None, None]:
-    """Stream response body from httpx."""
-    with httpx_response:
-        for chunk in httpx_response.iter_bytes():
+def _stream_response(
+    upstream: httpx.Response,
+    client: httpx.Client,
+) -> Generator[bytes, None, None]:
+    """Relay the upstream SSE body, then release the connection.
+
+    Both the response and its owning client are closed in a `finally` block so
+    the connection is released even if the browser disconnects mid-stream
+    (which raises GeneratorExit here).
+
+    NOTE: do NOT use `with httpx.stream(...)` in the calling route. Flask
+    evaluates this generator lazily, *after* the view returns, so the context
+    manager would already have closed the connection by the time the first
+    chunk is pulled. `httpx.Response` also has no context-manager protocol,
+    so `with upstream:` raises TypeError.
+    """
+    try:
+        for chunk in upstream.iter_bytes():
             yield chunk
+    finally:
+        upstream.close()
+        client.close()
 
 
 @bff_bp.route("/agents/stream", methods=["POST"])
@@ -55,47 +74,72 @@ def stream_agent() -> Response:
     data = request.get_json() or {}
     thread_id = data.get("thread_id", "unknown")
     user_id = request.headers.get("X-Forwarded-Email", "unknown@example.com")
+    set_request_id(thread_id)
 
-    logger.info(f"[BFF] stream | thread={thread_id} | user={user_id}")
+    logger.info(f"stream | thread={thread_id} | user={user_id}")
 
     headers = _build_request_headers()
     headers["Accept"] = "text/event-stream"
 
+    # The client must outlive this view function: Flask pulls from the
+    # generator only after the view returns. Ownership is handed to
+    # _stream_response(), which closes both in its finally block.
+    client = httpx.Client(timeout=600.0)  # 10 minute timeout for long streams
     try:
-        with httpx.stream(
-            "POST",
-            f"{AGENT_SERVER_URL}/api/v1/agents/stream",
-            json=data,
-            headers=headers,
-            timeout=600.0,  # 10 minute timeout for long streams
-        ) as httpx_response:
-            if httpx_response.status_code != 200:
-                return Response(
-                    json.dumps(
-                        {
-                            "error": "upstream_error",
-                            "status": httpx_response.status_code,
-                        }
-                    ),
-                    status=httpx_response.status_code,
-                    mimetype="application/json",
-                )
-
-            return Response(
-                stream_with_context(_stream_response(httpx_response)),
-                mimetype="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "X-Accel-Buffering": "no",
-                },
-            )
+        upstream = client.send(
+            client.build_request(
+                "POST",
+                f"{AGENT_SERVER_URL}/api/v1/agents/stream",
+                json=data,
+                headers=headers,
+            ),
+            stream=True,
+        )
     except Exception as e:
-        logger.exception(f"[BFF] stream error: {e}")
+        client.close()
+        logger.exception(f"stream | error={type(e).__name__}")
         return Response(
             json.dumps({"error": str(e)}),
             status=500,
             mimetype="application/json",
         )
+
+    if upstream.status_code != 200:
+        # Drain the body so the error detail is not lost, then release both.
+        try:
+            upstream.read()
+            detail = upstream.text[:500]
+        except Exception:
+            detail = ""
+        finally:
+            upstream.close()
+            client.close()
+
+        logger.error(
+            "stream | upstream_error | status=%s | detail=%s",
+            upstream.status_code,
+            detail,
+        )
+        return Response(
+            json.dumps(
+                {
+                    "error": "upstream_error",
+                    "status": upstream.status_code,
+                    "detail": detail,
+                }
+            ),
+            status=upstream.status_code,
+            mimetype="application/json",
+        )
+
+    return Response(
+        stream_with_context(_stream_response(upstream, client)),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @bff_bp.route("/agents/invoke", methods=["POST"])
@@ -104,8 +148,9 @@ def invoke_agent() -> dict[str, Any]:
     data = request.get_json() or {}
     thread_id = data.get("thread_id", "unknown")
     user_id = request.headers.get("X-Forwarded-Email", "unknown@example.com")
+    set_request_id(thread_id)
 
-    logger.info(f"[BFF] invoke | thread={thread_id} | user={user_id}")
+    logger.info(f"invoke | thread={thread_id} | user={user_id}")
 
     headers = _build_request_headers()
 
@@ -118,7 +163,7 @@ def invoke_agent() -> dict[str, Any]:
         )
         return httpx_response.json()
     except Exception as e:
-        logger.exception(f"[BFF] invoke error: {e}")
+        logger.exception(f"invoke | error={type(e).__name__}")
         return {"error": str(e), "status": 500}
 
 
@@ -126,8 +171,9 @@ def invoke_agent() -> dict[str, Any]:
 def get_thread(thread_id: str) -> dict[str, Any]:
     """GET /bff/agents/threads/{thread_id} → agent_server /api/v1/agents/threads/{thread_id}."""
     user_id = request.headers.get("X-Forwarded-Email", "unknown@example.com")
+    set_request_id(thread_id)
 
-    logger.info(f"[BFF] get_thread | thread={thread_id} | user={user_id}")
+    logger.info(f"get_thread | thread={thread_id} | user={user_id}")
 
     headers = _build_request_headers()
 
@@ -139,7 +185,7 @@ def get_thread(thread_id: str) -> dict[str, Any]:
         )
         return httpx_response.json()
     except Exception as e:
-        logger.exception(f"[BFF] get_thread error: {e}")
+        logger.exception(f"get_thread | error={type(e).__name__}")
         return {"error": str(e), "status": 500}
 
 
@@ -147,8 +193,9 @@ def get_thread(thread_id: str) -> dict[str, Any]:
 def delete_thread(thread_id: str) -> dict[str, Any]:
     """DELETE /bff/agents/threads/{thread_id} → agent_server."""
     user_id = request.headers.get("X-Forwarded-Email", "unknown@example.com")
+    set_request_id(thread_id)
 
-    logger.info(f"[BFF] delete_thread | thread={thread_id} | user={user_id}")
+    logger.info(f"delete_thread | thread={thread_id} | user={user_id}")
 
     headers = _build_request_headers()
 
@@ -160,7 +207,7 @@ def delete_thread(thread_id: str) -> dict[str, Any]:
         )
         return httpx_response.json()
     except Exception as e:
-        logger.exception(f"[BFF] delete_thread error: {e}")
+        logger.exception(f"delete_thread | error={type(e).__name__}")
         return {"error": str(e), "status": 500}
 
 
@@ -198,16 +245,11 @@ def health() -> dict[str, Any]:
     agent_url = f"{AGENT_SERVER_URL}/health"
     
     try:
-        logger.debug(f"[BFF] checking agent health at {agent_url}")
-        httpx_response = httpx.get(
-            agent_url,
-            timeout=5.0,
-        )
+        logger.debug(f"health | agent={agent_url}")
+        httpx_response = httpx.get(agent_url, timeout=5.0)
         
         if httpx_response.status_code != 200:
-            logger.warning(
-                f"[BFF] agent health check failed | status={httpx_response.status_code} | body={httpx_response.text}"
-            )
+            logger.warning(f"health | status={httpx_response.status_code}")
             return {
                 "status": "error",
                 "error": f"agent_server returned {httpx_response.status_code}",
@@ -215,29 +257,25 @@ def health() -> dict[str, Any]:
             }
         
         result = httpx_response.json()
-        logger.info(f"[BFF] agent health ok | graph_ready={result.get('graph_ready', 'unknown')}")
+        logger.info(f"health | graph_ready={result.get('graph_ready', 'unknown')}")
         return result
         
     except httpx.ConnectError as e:
-        logger.warning(
-            f"[BFF] cannot connect to agent_server | url={agent_url} | error={type(e).__name__}: {e}"
-        )
+        logger.warning(f"health | connect_error | agent={agent_url}")
         return {
             "status": "error",
             "error": "agent_server unreachable (connection refused)",
             "agent_url": agent_url,
-            "hint": "Start agent_server: uv run python ops/deployment/run_app.py",
         }
-    except httpx.TimeoutException as e:
-        logger.warning(f"[BFF] agent health check timeout | url={agent_url} | timeout=5.0s")
+    except httpx.TimeoutException:
+        logger.warning(f"health | timeout | agent={agent_url}")
         return {
             "status": "error",
             "error": "agent_server timeout (no response in 5s)",
             "agent_url": agent_url,
-            "hint": "Agent server may be overloaded or unresponsive",
         }
     except Exception as e:
-        logger.exception(f"[BFF] health check error | url={agent_url} | error={type(e).__name__}: {e}")
+        logger.exception(f"health | error={type(e).__name__}")
         return {
             "status": "error",
             "error": str(e),

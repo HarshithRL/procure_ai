@@ -2,8 +2,24 @@
 # Used by uv and deployment scripts
 
 databricks:
-  host: "http://localhost:8001"
-  profile: "DEFAULT"
+  # Real workspace host. This is consumed by EnvironmentConfig.host
+  # (shared_library/databricks_connectors/utils/env_reader.py:167) whenever
+  # DATABRICKS_HOST is not exported, and fed straight into the SDK Config.
+  #
+  # DO NOT point this at localhost: doing so makes every auth attempt target
+  # the local agent server, which fails and leaves the LangGraph brain
+  # unusable (/health reports graph_ready: false).
+  host: "https://adb-7181820732839861.1.azuredatabricks.net"
+
+  # CLI profile from ~/.databrickscfg used for local U2M (OAuth) auth.
+  #
+  # The key MUST be `config_profile`. EnvironmentConfig.config_profile
+  # (env_reader.py:171-174) only resolves `config_profile` /
+  # `databricks_config_profile`; a bare `profile:` key is silently ignored.
+  #
+  # Refresh the token with:
+  #   databricks auth login --host https://adb-7181820732839861.1.azuredatabricks.net
+  config_profile: "adb-7181820732839861"
   # token is read from DATABRICKS_TOKEN env var or ~/.databricks/profiles.json
 
 llm:
@@ -18,8 +34,15 @@ logging:
   dir: "./data/logs"
 
 mlflow:
-  tracking_uri: "http://127.0.0.1:5000"
-  experiment: "Procure AI"
+  # NOTE: this block is documentation only — no code reads it.
+  # Both wsgi.py:50 and agent_server/core/config.py:43 read the
+  # MLFLOW_TRACKING_URI / MLFLOW_EXPERIMENT *environment variables* instead.
+  # Values kept in sync with app.yaml so they do not mislead.
+  #
+  # Experiment names must be absolute workspace paths; a bare name is
+  # rejected by Databricks with INVALID_PARAMETER_VALUE.
+  tracking_uri: "databricks"
+  experiment: "/Shared/procure_ai"
 
 # For local testing without Databricks auth:
 # Set environment variable: USE_MOCK_MODEL=true

@@ -26,24 +26,19 @@ For local development, use ops/deployment/run_app.py to launch both:
     uv run python ops/deployment/run_app.py
 """
 
-import logging
 import os
 import signal
 import sys
 
-# Configure logging FIRST, before any imports that use logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Bootstrap logging FIRST (before any imports that use logging)
+from shared_library.global_logger_hub import bootstrap, get_app_logger
+
+bootstrap()
+logger = get_app_logger(__name__)
 
 # Bootstrap MLflow tracing (if available)
 try:
     import mlflow
-    from shared_library.global_logger_hub import configure_root_logging
-
-    configure_root_logging()
 
     # Default MLflow URI: if DATABRICKS_HOST is set, use the managed tracking server.
     # Otherwise, use explicit MLFLOW_TRACKING_URI or skip tracing.

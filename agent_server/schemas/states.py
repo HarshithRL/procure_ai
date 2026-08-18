@@ -17,10 +17,16 @@ class AgentState(TypedDict):
         thread_id: Unique session identifier (e.g., "{user_email}:{session_uuid}").
         user_id: User's Databricks email (from X-Forwarded headers).
         session_id: Unique session UUID.
+        profile: model_factory profile selected in the chat UI's model picker
+            (fast_chat | balanced | deep_reasoning). Read by the brain node to
+            pick the LLM per request.
+        model: Optional explicit model override (power-user escape hatch).
     """
 
     messages: Annotated[list[BaseMessage], add_messages]
     thread_id: str
     user_id: NotRequired[Optional[str]]
     session_id: NotRequired[Optional[str]]
+    profile: NotRequired[Optional[str]]
+    model: NotRequired[Optional[str]]
     pending_approval: NotRequired[Optional[dict]]  # HITL payload (Sprint 3)

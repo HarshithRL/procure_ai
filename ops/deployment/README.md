@@ -23,21 +23,60 @@ The **BFF (Backend-for-Frontend) proxy** in Flask (`web_app/blueprints/bff.py`) 
 
 ## Deployment Scenarios
 
-### Scenario 1: Local Development (Dual-Server with Hot Reload)
+### Scenario 1: Local Development (Dual-Server)
 
-Start both servers together with automatic reloading:
+Prerequisite — authenticate the CLI profile once:
 
-```bash
+```powershell
+databricks auth login --host https://adb-7181820732839861.1.azuredatabricks.net
+```
+
+`ops/config/dev.yml` pins `databricks.host` and `databricks.config_profile`,
+so **no environment variables are required** for auth to work.
+
+Start both servers together:
+
+```powershell
+$env:FLASK_ENV="development"        # else wsgi.py defaults to production
+$env:DATABRICKS_APP_PORT="5000"     # launcher default is 8000
 uv run python ops/deployment/run_app.py
 ```
 
 Then open: http://127.0.0.1:5000/chat
 
 **Expected behavior:**
-- FastAPI starts on port 8001 (reload enabled)
-- Flask starts on port 5000 (werkzeug dev server with hot reload)
+- FastAPI starts on port 8001
+- Flask starts on port 5000
+  - POSIX: gunicorn
+  - **Windows: waitress** (gunicorn imports `fcntl` and cannot run on Windows)
 - Agent status pill shows "● Agent connected" after 3-5 seconds
 - Message sending works end-to-end
+
+**Verify auth reached Databricks** — `graph_ready` must be `true`; if it is
+`false`, the LLM credential chain failed:
+
+```powershell
+curl http://127.0.0.1:5000/bff/health
+```
+
+<Note> Auth failures are memoized for 30s in `hub.py` and `brain.py`.
+Restart the process after a fix; re-hitting the endpoint will keep failing. </Note>
+
+**Simulate Databricks SSO locally** (a browser cannot inject these headers):
+
+```powershell
+# Identity from the SSO proxy headers
+curl http://127.0.0.1:5000/api/auth/profile -H "X-Forwarded-Email: you@etexgroup.com"
+
+# On-behalf-of (OBO) — exercises the branch production actually uses
+$tok = (databricks auth token --profile adb-7181820732839861 | ConvertFrom-Json).access_token
+curl http://127.0.0.1:5000/api/auth/profile `
+  -H "X-Forwarded-Email: you@etexgroup.com" `
+  -H "x-forwarded-access-token: $tok"
+```
+
+The first such request auto-provisions the user row; the browser then resolves
+the same user via the `get_current_user()` DB fallback.
 
 ---
 
@@ -102,7 +141,10 @@ CMD ["gunicorn", "wsgi:app", "-w", "4", "-b", "0.0.0.0:8000"]
 ENV AGENT_SERVER_URL="http://agent-service:8001"  # Host discovery
 ```
 
-Override `AGENT_SERVER_URL` in Flask config if needed (see `web_app/blueprints/bff.py:21`).
+**Note:** `AGENT_SERVER_URL` is currently **hardcoded** to `http://127.0.0.1:8001`
+at `web_app/blueprints/bff.py:21`. The `ENV` line above is aspirational — the
+env var is not read yet. Change the constant, or add env support, before
+splitting these into separate containers.
 
 ---
 
@@ -178,7 +220,25 @@ Then FastAPI is not running. Start it as shown in Step 1.
 
 ### Development
 
-No variables needed; defaults work fine.
+Auth needs **no** variables: `ops/config/dev.yml` supplies `databricks.host`
+and `databricks.config_profile`, which `EnvironmentConfig` reads.
+
+Two are still worth setting for the launcher:
+
+| Variable | Why |
+|---|---|
+| `FLASK_ENV=development` | `wsgi.py` defaults to `production`, which requires `SECRET_KEY` and sets `SESSION_COOKIE_SECURE=True` (cookies are dropped over local HTTP). |
+| `DATABRICKS_APP_PORT=5000` | The launcher defaults to 8000. |
+
+Optional overrides:
+
+| Variable | Effect |
+|---|---|
+| `DATABRICKS_HOST` | Overrides `dev.yml`. |
+| `DATABRICKS_CONFIG_PROFILE` | Overrides `dev.yml`; the **only** env var that selects a CLI profile. A bare `profile:` key in YAML is ignored. |
+| `DATABASE_URL` | Defaults to `sqlite:///procure_ai.db`. Do not set `:memory:` — SQLAlchemy gives each worker thread its own empty DB. |
+| `USE_MOCK_MODEL=true` | Falls back to `MockChatModel` **only after** a real auth failure. |
+| `GUNICORN_WORKERS` | POSIX only. |
 
 ### Production (Databricks Apps)
 

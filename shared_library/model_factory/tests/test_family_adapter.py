@@ -74,6 +74,12 @@ def test_catalog_enriched_and_filters_embeddings_flag() -> None:
 
 
 def test_build_request_params_strips_temperature_for_opus() -> None:
+    """Opus 4.7 uses ADAPTIVE thinking, not the legacy budgeted form.
+
+    The gateway rejects {"type": "enabled", "budget_tokens": N} for this model:
+      '"thinking.type.enabled" is not supported for this model. Use
+       "thinking.type.adaptive" and "output_config.effort"'
+    """
     bundle = load_registries()
     policy = resolve_family_policy(bundle, "system.ai.claude-opus-4-7")
     params = build_request_params(
@@ -85,7 +91,26 @@ def test_build_request_params_strips_temperature_for_opus() -> None:
     assert "temperature" not in params
     assert params["max_tokens"] == 2048
     assert "extra_body" in params
-    assert params["extra_body"]["thinking"]["type"] == "enabled"
+    assert params["extra_body"]["thinking"] == {"type": "adaptive"}
+    assert params["extra_body"]["output_config"]["effort"] == "high"
+    # The rejected legacy key must not be present.
+    assert "budget_tokens" not in params["extra_body"]["thinking"]
+
+
+def test_build_request_params_legacy_thinking_for_older_claude() -> None:
+    """Models still on `reasoning_mode: thinking` keep the budgeted form."""
+    bundle = load_registries()
+    policy = resolve_family_policy(bundle, "system.ai.claude-sonnet-4-6")
+    params = build_request_params(
+        policy=policy,
+        temperature_supported=False,
+        merged_hyperparams={"max_tokens": 4096},
+        enable_thinking=True,
+    )
+    thinking = params["extra_body"]["thinking"]
+    assert thinking["type"] == "enabled"
+    assert thinking["budget_tokens"] == 4095
+    assert "output_config" not in params["extra_body"]
 
 
 def test_build_request_params_reasoning_effort_for_gpt_oss() -> None:

@@ -400,6 +400,13 @@ class ModelFactoryResolver:
         effort = reasoning_effort
         if effort is None and policy.reasoning_extra_body == "reasoning_effort":
             effort = "low"
+        if effort is None and isinstance(profile, dict):
+            # Adaptive-thinking models (Claude Opus 4.7+) map the profile's
+            # declared effort onto output_config.effort. ProfileRegistry
+            # declares e.g. deep_reasoning -> effort: high.
+            declared = profile.get("effort")
+            if isinstance(declared, str) and declared.strip():
+                effort = declared.strip().lower()
 
         filtered = build_request_params(
             policy=policy,

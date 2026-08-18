@@ -84,7 +84,12 @@ def _badges_for(meta: Dict[str, Any]) -> List[str]:
     tier = str(meta.get("tier") or "")
     if tier in _TIER_BADGES:
         badges.append(_TIER_BADGES[tier])
-    if meta.get("reasoning_mode") in {"thinking", "reasoning_effort", "forced"}:
+    if meta.get("reasoning_mode") in {
+        "thinking",
+        "thinking_adaptive",
+        "reasoning_effort",
+        "forced",
+    }:
         badges.append("Reasoning")
     if meta.get("temperature_supported") is False:
         badges.append("No temp")
