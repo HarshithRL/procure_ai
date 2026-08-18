@@ -20,11 +20,22 @@ env:
     value: "sqlite:////tmp/procure_ai.db"
   
   # Secret Key for session signing (MUST be set via Databricks Secret)
-  # Command to create secret (already created):
+  #
+  # IMPORTANT: `valueFrom` takes the *app resource key*, NOT a secret path.
+  # "valueFrom: secret/procure-ai/secret-key" fails with:
+  #   error resolving resource secret/procure-ai/secret-key for env SECRET_KEY:
+  #   resource secret/procure-ai/secret-key not found
+  #
+  # The secret must first be attached to the app as a named resource:
   #   databricks secrets create-scope procure-ai --profile adb-7181820732839861
   #   databricks secrets put-secret procure-ai secret-key --string-value "<strong-random-value>" --profile adb-7181820732839861
+  #   databricks apps update ds-procure-ai --profile adb-7181820732839861 --json '{
+  #     "resources": [{"name": "secret-key",
+  #                    "secret": {"scope": "procure-ai", "key": "secret-key", "permission": "READ"}}]}'
+  #
+  # Resource "secret-key" is attached to app ds-procure-ai.
   - name: SECRET_KEY
-    valueFrom: secret/procure-ai/secret-key
+    valueFrom: secret-key
   
   # Databricks workspace host for WorkspaceClient (required for agent/LLM work)
   # Auto-populated when app is deployed to Databricks
