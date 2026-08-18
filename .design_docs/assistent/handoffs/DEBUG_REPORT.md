@@ -215,6 +215,84 @@ To prevent similar issues:
 
 ---
 
+# Part 2 — Deployment Round (same day)
+
+Fixing the startup crash unblocked the app, but deploying it surfaced four more
+defects. Three were pre-existing and previously **invisible**, because FastAPI's
+stdout was being swallowed by the unread subprocess pipe (Part 1, issue #2).
+Fixing log visibility is what made them observable.
+
+| # | Stage | Error | Cause | Fix |
+|---|-------|-------|-------|-----|
+| 12 | BUILD | `No matching distribution found for pywin32==312` | **Self-inflicted.** `uv pip compile` was run on Windows and committed, pinning Windows-only wheels (`pywin32` via mlflow→docker, `win32-setctime` via loguru) with no platform markers. Databricks Apps builds on Ubuntu 22.04. | Restored the hand-maintained 54-line loose `requirements.txt`; added only `flask-cors`; added a header warning + `--python-platform linux` escape hatch |
+| 13 | RUNTIME | `INVALID_PARAMETER_VALUE: Got an invalid experiment name 'procure_ai'` | Databricks-managed MLflow requires **absolute workspace paths**. Both entry points used bare names. | Default to `/Shared/procure_ai`; normalize non-absolute names; declare `MLFLOW_TRACKING_URI`/`MLFLOW_EXPERIMENT` in `app.yaml` |
+| 14 | RUNTIME | `Graph warm-up error: Prompt not found: .../brain/SYSTEM_PROMPT.md` | `databricks.yml` excluded `"*.md"` from sync — which also stripped the agent's **runtime prompt assets**. The agent was starting with no system prompt. | Removed the blanket glob (root docs were already listed individually); documented why it must not return |
+| 15 | BUILD | `error resolving resource secret/procure-ai/secret-key for env SECRET_KEY` | `valueFrom` resolves an **app resource key**, not a secret path. The secret existed but was never attached to the app, so `SECRET_KEY` was never injected → `ProductionConfig.SECRET_KEY = None` → Flask sessions would 500 on first write. | Attached the secret as app resource `secret-key` (READ); `valueFrom: secret-key` |
+
+### Deployment commands used
+
+```powershell
+# Attach the secret as an app resource (one-time)
+databricks apps update ds-procure-ai --profile adb-7181820732839861 --json '{
+  "resources": [{
+    "name": "secret-key",
+    "secret": {"scope": "procure-ai", "key": "secret-key", "permission": "READ"}
+  }]
+}'
+
+# Deploy
+databricks bundle deploy -t dev --profile adb-7181820732839861
+databricks apps deploy ds-procure-ai `
+  --source-code-path /Workspace/Users/harshith.raghunath@etexgroup.com/vendor-agent/files `
+  --profile adb-7181820732839861
+```
+
+> **Note on `deploy.ps1`**: piping it through `2>&1` in PowerShell trips
+> `$ErrorActionPreference = "Stop"`, because the Databricks CLI writes progress to
+> stderr and PowerShell surfaces that as a `NativeCommandError`. Run the script
+> without redirection, or invoke the CLI steps directly.
+
+### Final verified state
+
+```
+URL          : https://ds-procure-ai-7181820732839861.1.azure.databricksapps.com
+App state    : RUNNING - App is running
+Compute      : ACTIVE
+Deploy state : SUCCEEDED
+Resources    : secret-key
+```
+
+```
+[launcher] Starting Procure AI dual-process server...
+[INFO] Listening at: http://0.0.0.0:8000
+[INFO] Booting worker with pid: 990
+[INFO] Booting worker with pid: 991
+INFO:     Started server process [987]
+MLflow bootstrapped | uri=databricks | exp=/Shared/procure_ai
+Brain agent compiled | tools=0 | model_type=ConstraintAwareChatModel
+Graph built | id=procure_orchestrator
+Agent graph warmed up          <-- previously failed silently
+Server startup complete
+```
+
+No errors, no tracebacks, no unresolved resources.
+
+### Additional learnings
+
+6. **Never commit a lockfile compiled on a different OS than the deploy target.**
+   `uv pip compile` bakes in platform-specific transitive deps with no markers.
+   Use `--python-platform linux`, or keep the file loose and let the Linux build
+   host resolve.
+7. **Blanket file-exclusion globs are dangerous when code loads data files.**
+   `"*.md"` looked like a docs filter; it was actually stripping agent prompts.
+   Exclude directories and named files, not extensions.
+8. **`valueFrom` is a resource-key indirection, not a path.** A secret existing in
+   a scope is necessary but not sufficient — it must be attached to the app.
+9. **Fixing observability pays compound interest.** Issues #13, #14 and #15 were
+   all already present; they only became diagnosable after the stdout pipe fix.
+
+---
+
 ## Questions?
 
 See `.design_docs/assistent/handoffs/STARTUP_FIX_SUMMARY.md` for detailed solution guide.
